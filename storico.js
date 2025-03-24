@@ -41,7 +41,8 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   allenamentiArray.forEach((all, idx) => {
-    const isFirst = idx === 0; // Solo il più recente si apre
+    const isFirst = false; // Nessun allenamento aperto di default
+
     const data = new Date(all.timestamp).toLocaleDateString("it-IT");
 
     const container = document.createElement("div");
