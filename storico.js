@@ -43,7 +43,7 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
   allenamentiArray.forEach((all, idx) => {
     const isFirst = false; // Nessun allenamento aperto di default
 
-    const data = new Date(all.timestamp).toLocaleDateString("it-IT");
+    let data = all.data || new Date(all.timestamp).toLocaleDateString("it-IT");
 
     const container = document.createElement("div");
     container.className = "allenamento";
@@ -59,6 +59,11 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
     header.style.cursor = "pointer";
 
     // Data
+    if (all.data) {
+      const [yyyy, mm, dd] = all.data.split("-");
+      data = `${dd}/${mm}/${yyyy}`;
+    }
+
     const label = document.createElement("span");
     label.textContent = data;
 

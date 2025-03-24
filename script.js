@@ -53,9 +53,11 @@ document
 
     const presenze = document.querySelectorAll('input[name="presenza"]');
     const voti = document.querySelectorAll('input[name="voto"]');
+    const dataAllenamento = document.getElementById("dataAllenamento").value;
 
     const allenamento = {
-      timestamp: new Date().toISOString(),
+      data: dataAllenamento,
+      timestamp: new Date().toISOString(), // utile se vuoi comunque tenerlo
       giocatori: {},
     };
 
