@@ -83,3 +83,10 @@ input[name="voto"] {
   border-radius: 5px;
   font-size: 14px;
 }
+
+input[name="dataAllenamento"] {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
