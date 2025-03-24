@@ -27,8 +27,9 @@ giocatori.forEach((nome, index) => {
   div.style.marginBottom = "10px";
 
   let options = '<option value="">-</option>';
-  for (let v = 1; v <= 10; v++) {
-    options += `<option value="${v}">${v}</option>`;
+  for (let v = 1.0; v <= 10.0; v += 0.25) {
+    const voto = v.toFixed(2).replace(".00", ""); // mostra 6 invece di 6.00
+    options += `<option value="${voto}">${voto}</option>`;
   }
 
   div.innerHTML = `
