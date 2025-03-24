@@ -70,7 +70,8 @@ document
       );
 
       if (presenzaInput && presenzaInput.checked) {
-        const voto = parseInt(votoSelect?.value);
+        const voto = parseFloat(votoSelect?.value);
+
         allenamento.giocatori[nome] = {
           voto: isNaN(voto) ? null : voto,
         };

@@ -47,7 +47,7 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
 
     const container = document.createElement("div");
     container.className = "allenamento";
-    container.style.borderTop = "1px solid #ccc";
+    // container.style.borderTop = "1px solid #ccc";
     container.style.padding = "8px 0";
 
     // HEADER
