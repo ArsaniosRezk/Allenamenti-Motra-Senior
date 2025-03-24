@@ -91,6 +91,13 @@ input[name="dataAllenamento"] {
   font-size: 14px;
 }
 
+select[name="tipoAttivita"] {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

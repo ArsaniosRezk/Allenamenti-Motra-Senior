@@ -55,9 +55,12 @@ document
     const voti = document.querySelectorAll('input[name="voto"]');
     const dataAllenamento = document.getElementById("dataAllenamento").value;
 
+    const tipoAttivita = document.getElementById("tipoAttivita").value;
+
     const allenamento = {
+      tipo: tipoAttivita,
       data: dataAllenamento,
-      timestamp: new Date().toISOString(), // utile se vuoi comunque tenerlo
+      timestamp: new Date().toISOString(),
       giocatori: {},
     };
 
