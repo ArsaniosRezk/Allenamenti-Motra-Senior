@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storico Allenamenti</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div
+      style="display: flex; justify-content: space-between; align-items: center"
+    >
+      <h2>Storico Allenamenti</h2>
+      <a href="index.html" style="font-size: 12px">Nuovo allenamento →</a>
+    </div>
+
+    <h3>Statistiche</h3>
+    <div id="statisticheContainer"></div>
+
+    <div id="storicoContainer"></div>
+
+    <!-- Firebase compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
+        authDomain: "allenamenti-motra-senior.firebaseapp.com",
+        projectId: "allenamenti-motra-senior",
+        storageBucket: "allenamenti-motra-senior.firebasestorage.app",
+        messagingSenderId: "816511360311",
+        appId: "1:816511360311:web:d50530672d926d48f0ceb2",
+        measurementId: "G-M8SB7S7DQ7",
+        databaseURL:
+          "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      window.firebaseDB = db;
+    </script>
+
+    <script src="storico.js"></script>
+  </body>
+</html>
