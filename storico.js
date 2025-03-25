@@ -18,15 +18,23 @@ const giocatori = [
   "Mino Basem",
   "Peter Melek",
   "Tamer Mekkar",
+  "Squadra",
 ];
 
 // Statistiche separate
 const statsAllenamento = {};
 const statsPartita = {};
+const ultimoVotoAllenamento = {};
+const ultimoVotoPartita = {};
+let numeroAllenamenti = 0;
+const assenzeAllenamento = {};
+
+const eccezioniAssenze = ["Bisho Karim", "Mino Basem", "Marco Salib"];
 
 giocatori.forEach((nome) => {
   statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
   statsPartita[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
+  assenzeAllenamento[nome] = 0;
 });
 
 firebaseDB.ref("allenamenti").once("value", (snapshot) => {
@@ -36,22 +44,18 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
     return;
   }
 
-  // Ordina per data
   const chiaviAllenamenti = Object.keys(allenamenti);
   const allenamentiArray = chiaviAllenamenti
-    .map((key) => ({
-      id: key,
-      ...allenamenti[key],
-    }))
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    .map((key) => ({ id: key, ...allenamenti[key] }))
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  // Sezione CRONOLOGIA (tutti)
   const titoloCrono = document.createElement("h3");
   titoloCrono.textContent = "Cronologia";
-  storicoDiv.appendChild(titoloCrono);
 
   allenamentiArray.forEach((all) => {
     const tipo = all.tipo || "allenamento";
+    if (tipo === "allenamento") numeroAllenamenti++;
+
     const tipoCapitalizzato = tipo.charAt(0).toUpperCase() + tipo.slice(1);
 
     let data = all.data || new Date(all.timestamp).toLocaleDateString("it-IT");
@@ -113,18 +117,58 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
 
     const dettaglio = document.createElement("div");
     dettaglio.style.display = "none";
-    dettaglio.style.paddingLeft = "10px";
+    dettaglio.style.paddingLeft = "0";
 
     const ul = document.createElement("ul");
+    ul.style.paddingLeft = "0";
+
     giocatori.forEach((nome) => {
       const presente = all.giocatori && all.giocatori[nome] !== undefined;
-      const voto = all.giocatori?.[nome]?.voto;
+      const voto =
+        all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
+      const commento = all.giocatori?.[nome]?.commento || "";
       const li = document.createElement("li");
+      li.style.listStylePosition = "inside";
+
+      let nomeFinale;
+      if (nome === "Kirolos Shehata") nomeFinale = "Kiro Sh";
+      else if (nome === "Kirullos Soliman") nomeFinale = "Kiro So";
+      else {
+        const cognome = nome.split(" ")[1] || "";
+        const abbreviazione = `${nome.split(" ")[0]} ${cognome.slice(0, 1)}`;
+        const omonimi = giocatori.filter(
+          (g) => g.split(" ")[0] === nome.split(" ")[0]
+        );
+        nomeFinale =
+          omonimi.length > 1
+            ? `${nome.split(" ")[0]} ${cognome.slice(0, 1)}`
+            : abbreviazione;
+      }
 
       if (presente) {
-        li.textContent = `${nome}: Voto ${isNaN(voto) ? "-" : voto}`;
+        const ultimoVoti =
+          tipo === "partita" ? ultimoVotoPartita : ultimoVotoAllenamento;
+        const votoPrecedente = ultimoVoti[nome];
 
-        // Statistiche separate
+        let freccia = "";
+        let colore = "black";
+
+        if (!isNaN(voto) && !isNaN(votoPrecedente)) {
+          if (voto > votoPrecedente) {
+            freccia = "⬆︎";
+            colore = "green";
+          } else if (voto < votoPrecedente) {
+            freccia = "⬇︎";
+            colore = "red";
+          }
+        }
+
+        ultimoVoti[nome] = voto;
+
+        li.innerHTML = `<strong>${nomeFinale}</strong> ${
+          isNaN(voto) ? "-" : voto
+        } <span style="color:${colore}; font-family: monospace; font-weight: bold;">${freccia}</span>: ${commento}`;
+
         const targetStats =
           tipo === "partita" ? statsPartita[nome] : statsAllenamento[nome];
         targetStats.presenze += 1;
@@ -132,7 +176,8 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
           targetStats.sommaVoti += voto;
         }
       } else {
-        li.textContent = `${nome}: assente`;
+        li.innerHTML = `<strong>${nomeFinale}</strong>: assente`;
+        if (tipo === "allenamento") assenzeAllenamento[nome]++;
       }
 
       ul.appendChild(li);
@@ -149,11 +194,28 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
 
     container.appendChild(header);
     container.appendChild(dettaglio);
-    storicoDiv.appendChild(container);
+    storicoDiv.prepend(container);
   });
 
-  // Tabelle statistiche
+  storicoDiv.prepend(titoloCrono);
+
   const buildStatsTable = (statsObj, titolo) => {
+    const ordinati = Object.entries(statsObj)
+      .map(([nome, dati]) => {
+        const mediaBase =
+          dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
+        let penalita = 0;
+        if (nome !== "Squadra") {
+          const assenze = assenzeAllenamento[nome] || 0;
+          penalita =
+            Math.max(0, assenze - (eccezioniAssenze.includes(nome) ? 1 : 0)) *
+            0.1;
+        }
+        const media = mediaBase * (1 - penalita);
+        return { nome, ...dati, media };
+      })
+      .sort((a, b) => b.media - a.media);
+
     let html = `<h3>${titolo}</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 15px; border-radius: 5px; overflow: hidden;">
         <thead style="background-color: #e0e0e0;">
@@ -165,14 +227,24 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
         </thead>
         <tbody>`;
 
-    giocatori.forEach((nome) => {
-      const s = statsObj[nome];
-      s.media = s.presenze > 0 ? (s.sommaVoti / s.presenze).toFixed(2) : "-";
+    ordinati.forEach((dati, i) => {
+      const colore =
+        dati.presenze === 0
+          ? ""
+          : dati.media < 6
+          ? "#f8c1c1"
+          : dati.media < 7
+          ? "#fff6c1"
+          : dati.media < 8
+          ? "#d0f2c1"
+          : "#a0f2a0";
       html += `
-        <tr style="background-color: #f9f9f9;">
-          <td style="padding: 10px;">${nome}</td>
-          <td style="text-align: center;">${s.presenze}</td>
-          <td style="text-align: center;">${s.media}</td>
+        <tr style="background-color: ${i % 2 === 0 ? "#f9f9f9" : "#fff"};">
+          <td style="padding: 10px;">${dati.nome}</td>
+          <td style="text-align: center;">${dati.presenze}</td>
+          <td style="text-align: center; background-color: ${colore};">${
+        dati.presenze === 0 ? "-" : dati.media.toFixed(2)
+      }</td>
         </tr>`;
     });
 
