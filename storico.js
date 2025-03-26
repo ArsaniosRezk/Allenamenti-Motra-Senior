@@ -11,7 +11,7 @@ const giocatori = [
   "Arsanios Rezk",
   "Bisho Karim",
   "Ishak Salib",
-  "Kirolos Youssef",
+  "Kirollos Youssef",
   "Kirolos Shehata",
   "Kirullos Soliman",
   "Marco Salib",
@@ -135,8 +135,9 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
       li.style.listStylePosition = "inside";
 
       let nomeFinale;
-      if (nome === "Kirolos Shehata") nomeFinale = "Kiro Sh";
-      else if (nome === "Kirullos Soliman") nomeFinale = "Kiro So";
+      if (nome === "Kirolos Shehata") nomeFinale = "Kiro She";
+      else if (nome === "Kirullos Soliman") nomeFinale = "Kiro Sol";
+      else if (nome === "Kirollos Youssef") nomeFinale = "Kiro You";
       else {
         const cognome = nome.split(" ")[1] || "";
         const abbreviazione = `${nome.split(" ")[0]} ${cognome.slice(0, 1)}`;
