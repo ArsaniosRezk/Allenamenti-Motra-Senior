@@ -82,7 +82,13 @@ const aggiornaBonusVisibility = () => {
   document.querySelectorAll(".bonus-container").forEach((el) => {
     el.style.display = isAllenamento ? "flex" : "none";
   });
+
+  const divSquadra = document.querySelector(".squadra");
+  if (divSquadra) {
+    divSquadra.style.display = isAllenamento ? "none" : "flex";
+  }
 };
+
 if (tipoSelect) {
   tipoSelect.addEventListener("change", aggiornaBonusVisibility);
   aggiornaBonusVisibility();

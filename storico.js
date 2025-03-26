@@ -11,7 +11,7 @@ const giocatori = [
   "Arsanios Rezk",
   "Bisho Karim",
   "Ishak Salib",
-  "Kirollos Youssef",
+  "Kirolos Youssef",
   "Kirolos Shehata",
   "Kirullos Soliman",
   "Marco Salib",
@@ -31,6 +31,8 @@ let numeroAllenamenti = 0;
 const assenzeAllenamento = {};
 
 const eccezioniAssenze = [];
+
+const giocatoriSenzaSquadra = giocatori.filter((g) => g !== "Squadra");
 
 giocatori.forEach((nome) => {
   statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
@@ -124,6 +126,7 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
     ul.style.paddingLeft = "0";
 
     giocatori.forEach((nome) => {
+      if (tipo === "allenamento" && nome === "Squadra") return;
       const presente = all.giocatori && all.giocatori[nome] !== undefined;
       const voto =
         all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
@@ -202,6 +205,9 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
 
   const buildStatsTable = (statsObj, titolo) => {
     const ordinati = Object.entries(statsObj)
+      .filter(
+        ([nome]) => nome !== "Squadra" || titolo !== "Statistiche Allenamenti"
+      )
       .map(([nome, dati]) => {
         const mediaBase =
           dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
