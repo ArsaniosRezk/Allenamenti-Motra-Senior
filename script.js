@@ -7,6 +7,7 @@ const giocatori = [
   "Arsanios Rezk",
   "Bisho Karim",
   "Ishak Salib",
+  "Kirollos Youssef",
   "Kirolos Shehata",
   "Kirullos Soliman",
   "Marco Salib",

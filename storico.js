@@ -11,6 +11,7 @@ const giocatori = [
   "Arsanios Rezk",
   "Bisho Karim",
   "Ishak Salib",
+  "Kirollos Youssef",
   "Kirolos Shehata",
   "Kirullos Soliman",
   "Marco Salib",
@@ -29,7 +30,7 @@ const ultimoVotoPartita = {};
 let numeroAllenamenti = 0;
 const assenzeAllenamento = {};
 
-const eccezioniAssenze = ["Bisho Karim", "Mino Basem", "Marco Salib"];
+const eccezioniAssenze = [];
 
 giocatori.forEach((nome) => {
   statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
@@ -211,7 +212,11 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
             Math.max(0, assenze - (eccezioniAssenze.includes(nome) ? 1 : 0)) *
             0.1;
         }
-        const media = mediaBase * (1 - penalita);
+
+        const mediaPenalizzata = mediaBase * (1 - penalita);
+        const bonus = dati.presenze * 0.05 * mediaBase;
+        const media = mediaPenalizzata + bonus;
+
         return { nome, ...dati, media };
       })
       .sort((a, b) => b.media - a.media);
