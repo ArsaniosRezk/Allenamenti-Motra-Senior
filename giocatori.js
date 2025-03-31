@@ -12,6 +12,7 @@ export const giocatori = [
   "Kirullos Soliman",
   "Marco Salib",
   "Matteo Boles",
+  "Mina Makram",
   "Mino Basem",
   "Peter Melek",
   "Tamer Mekkar",
