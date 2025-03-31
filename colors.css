@@ -1,0 +1,52 @@
+:root {
+  --sfondo: #0a2647;
+  --testo: yellow;
+
+  --primary: #0a2647;
+  --secondary: #144272;
+  --tertiary: #205295;
+  --quaternary: #2c74b3;
+
+  --bianco: white;
+  --nero: black;
+
+  --interaction: #e7e77f;
+
+  --link: #e7e77f;
+
+  --placeholder: #fcfbfb5d;
+
+  --verde: #6bc26e;
+  --red: #e74c3c;
+  --light-gray: #ccc;
+  --light-green: #a0f2a0;
+  --medium-green: #d0f2c1;
+  --yellow: #fff6c1;
+  --light-red: #f8c1c1;
+  --avviso-text: white;
+  --table-even: #ebebeb;
+  --table-odd: #f5f5f5;
+  --bianco: white;
+
+  /* alert salvatagio */
+  --avviso-success-bg: #4caf50;
+  --avviso-error-bg: #f44336;
+
+  /* toggle bonus */
+  --toggle-negativo: #ffa79e;
+  --toggle-neutro: #ccc;
+  --toggle-positivo: #7bd1a0;
+}
+
+:root {
+  --btn-elimina-bg: #ffe5e5;
+  --btn-elimina-border: #ff9999;
+  --btn-elimina-text: #a30000;
+}
+
+:root {
+  --media-bassa: #ec4d52;
+  --media-media: #ccb94b;
+  --media-buona: #2cb647;
+  --media-alta: #4e982e;
+}

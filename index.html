@@ -4,50 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nuova Pagella</title>
+    <link rel="stylesheet" href="colors.css" />
     <link rel="stylesheet" href="style.css" />
-    <!-- Firebase -->
   </head>
   <body>
-    <div
-      style="display: flex; justify-content: space-between; align-items: center"
-    >
+    <div id="intestazione">
       <h2>Nuova Pagella</h2>
-      <a href="storico.html" style="font-size: 12px">Vai allo storico →</a>
+      <a href="storico.html" class="link">STORICO</a>
     </div>
 
-    <div
-      style="
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 15px;
-      "
-    >
-      <label style="font-weight: bold" for="dataAllenamento">Data:</label>
-      <input
-        style="border-radius: 5px"
-        type="date"
-        id="dataAllenamento"
-        name="dataAllenamento"
-        required
-      />
-    </div>
+    <div id="info-pagella">
+      <div>
+        <label for="dataAllenamento">Data</label>
+        <input
+          type="date"
+          id="dataAllenamento"
+          name="dataAllenamento"
+          required
+        />
+      </div>
 
-    <div
-      style="display: flex; justify-content: space-between; margin-bottom: 10px"
-    >
-      <label for="tipoAttivita">Tipo:</label>
-      <select id="tipoAttivita" name="tipoAttivita" required>
-        <option value="allenamento">Allenamento</option>
-        <option value="partita">Partita</option>
-      </select>
+      <div>
+        <label for="tipoAttivita">Tipo</label>
+        <select id="tipoAttivita" name="tipoAttivita" required>
+          <option value="allenamento">Allenamento</option>
+          <option value="partita">Partita</option>
+        </select>
+      </div>
     </div>
 
     <form id="allenamentoForm">
-      <div id="giocatoriList">
-        <!-- Lista giocatori verrà creata qui -->
-      </div>
+      <div id="lista-giocatori"></div>
 
       <button type="submit">Salva Pagella</button>
     </form>
@@ -80,6 +67,6 @@
     </script>
 
     <!-- ORA puoi caricare il tuo script -->
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
   </body>
 </html>
