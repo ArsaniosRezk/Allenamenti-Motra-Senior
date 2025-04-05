@@ -111,7 +111,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
         navigator.clipboard
           .write([new ClipboardItem({ "image/png": blob })])
           .then(() => {
-            mostraAvviso("Tabella copiata come immagine!", "success");
+            mostraAvviso("Copiato come immagine!", "success");
           })
           .catch(() => {
             mostraAvviso("Errore nella copia.", "error");
@@ -315,9 +315,7 @@ firebaseDB.ref("allenamenti").once("value", (snapshot) => {
         canvas.toBlob((blob) => {
           navigator.clipboard
             .write([new ClipboardItem({ "image/png": blob })])
-            .then(() =>
-              mostraAvviso("Blocco copiato come immagine!", "success")
-            )
+            .then(() => mostraAvviso("Copiato come immagine!", "success"))
             .catch(() => mostraAvviso("Errore nella copia.", "error"));
         });
       });
