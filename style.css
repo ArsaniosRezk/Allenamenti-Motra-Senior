@@ -570,3 +570,34 @@ ul {
   width: auto;
   padding: 0 5px 0 30px;
 }
+
+/* panchina  */
+
+#div-panchina {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  /* background-color: var(--secondary); */
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 40px;
+}
+
+.riga-uno .riga-due {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.riga-uno > select {
+  width: auto;
+}
+
+.riga-due > select {
+  width: auto;
+}
+
+#panchina-title {
+  margin-bottom: 10px;
+}
