@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formazione</title>
+    <link rel="stylesheet" href="colors.css" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        text-align: center;
+      }
+      #campo {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin: 20px auto;
+        padding: 20px 10px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 2 / 3;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Football_field.svg");
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        justify-content: space-between;
+        padding-top: 20%;
+      }
+      .linea {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+      }
+      .posizione {
+        background-color: var(--secondary);
+        padding: 5px;
+        border-radius: 10px;
+        width: 100px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .posizione label {
+        /* font-weight: bold; */
+        font-size: 0.7rem;
+        margin-top: 8px;
+        white-space: nowrap;
+      }
+      select {
+        width: 100%;
+        max-width: 100%;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: center;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-color: var(--quaternary);
+        color: var(--bianco);
+        border: none;
+        padding: 6px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="intestazione">
+      <h2>Formazione</h2>
+      <a href="storico.html" class="link">STORICO</a>
+    </div>
+
+    <div id="campo">
+      <div class="linea">
+        <div class="posizione">
+          <select id="att"></select>
+          <label>PC</label>
+        </div>
+      </div>
+      <div class="linea">
+        <div class="posizione">
+          <select id="cen1"></select>
+          <label>CC</label>
+        </div>
+        <div class="posizione">
+          <select id="cen2"></select>
+          <label>CC</label>
+        </div>
+      </div>
+      <div class="linea">
+        <div class="posizione">
+          <select id="dif3"></select>
+          <label>TS</label>
+        </div>
+        <div class="posizione">
+          <select id="dif2"></select>
+          <label>DC</label>
+        </div>
+        <div class="posizione">
+          <select id="dif1"></select>
+          <label>TD</label>
+        </div>
+      </div>
+      <div class="linea">
+        <div class="posizione">
+          <select id="portiere"></select>
+          <label>Por</label>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { giocatori, abbreviaNomeFormazione } from "./giocatori.js";
+
+      const ids = ["portiere", "dif1", "dif2", "dif3", "cen1", "cen2", "att"];
+
+      ids.forEach((id) => {
+        const select = document.getElementById(id);
+        const opzioneVuota = document.createElement("option");
+        opzioneVuota.value = "";
+        opzioneVuota.textContent = "-";
+        select.appendChild(opzioneVuota);
+
+        giocatori.forEach((nome) => {
+          const opt = document.createElement("option");
+          opt.value = nome;
+          opt.textContent = abbreviaNomeFormazione(nome);
+          select.appendChild(opt);
+        });
+      });
+    </script>
+  </body>
+</html>

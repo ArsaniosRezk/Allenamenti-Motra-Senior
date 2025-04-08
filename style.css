@@ -15,8 +15,20 @@ body {
 
 #intestazione {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
+}
+
+#titolo {
+  flex: 1;
+}
+
+.navigation-div {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  gap: 10px;
 }
 
 #intestazione .link {
