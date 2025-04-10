@@ -233,27 +233,34 @@ function creaTabellaStatistiche(statsObj, titolo) {
       ? "tabella-allenamenti"
       : "tabella-partite";
 
-  const ordinati = Object.entries(statsObj)
-    .filter(
-      ([nome]) => nome !== "Squadra" || titolo !== "Statistiche Allenamenti"
-    )
-    .map(([nome, dati]) => {
-      const mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
+  let ordinati = Object.entries(statsObj).map(([nome, dati]) => {
+    const mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
 
-      let media;
-      if (titolo === "Statistiche Partite") {
-        media = mediaBase; // nessuna penalità o bonus
-      } else {
-        const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
-        const mediaPenalizzata = mediaBase * (1 - penalita);
-        const bonus = dati.presenze * 0.05 * mediaBase;
-        media = mediaPenalizzata + bonus;
-      }
+    let media;
+    if (titolo === "Statistiche Partite") {
+      media = mediaBase; // nessuna penalità o bonus
+    } else {
+      const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
+      const mediaPenalizzata = mediaBase * (1 - penalita);
+      const bonus = dati.presenze * 0.05 * mediaBase;
+      media = mediaPenalizzata + bonus;
+    }
 
-      return { nome, ...dati, media };
-    })
+    return { nome, ...dati, media };
+  });
 
-    .sort((a, b) => b.media - a.media);
+  // Se siamo nella tabella partite, metti "Squadra" in fondo
+  if (titolo === "Statistiche Partite") {
+    ordinati = ordinati.sort((a, b) => {
+      if (a.nome === "Squadra") return 1;
+      if (b.nome === "Squadra") return -1;
+      return b.media - a.media;
+    });
+  } else {
+    ordinati = ordinati
+      .filter((d) => d.nome !== "Squadra")
+      .sort((a, b) => b.media - a.media);
+  }
 
   let html = `
     <div class="statistiche-blocco" id="blocco-${idTabella}">
