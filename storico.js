@@ -239,12 +239,20 @@ function creaTabellaStatistiche(statsObj, titolo) {
     )
     .map(([nome, dati]) => {
       const mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
-      const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
-      const mediaPenalizzata = mediaBase * (1 - penalita);
-      const bonus = dati.presenze * 0.05 * mediaBase;
-      const media = mediaPenalizzata + bonus;
+
+      let media;
+      if (titolo === "Statistiche Partite") {
+        media = mediaBase; // nessuna penalità o bonus
+      } else {
+        const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
+        const mediaPenalizzata = mediaBase * (1 - penalita);
+        const bonus = dati.presenze * 0.05 * mediaBase;
+        media = mediaPenalizzata + bonus;
+      }
+
       return { nome, ...dati, media };
     })
+
     .sort((a, b) => b.media - a.media);
 
   let html = `
