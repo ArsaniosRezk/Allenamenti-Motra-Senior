@@ -3,75 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Formazione</title>
+    <title>PARTITA</title>
     <link rel="stylesheet" href="colors.css" />
     <link rel="stylesheet" href="style.css" />
-    <style>
-      body {
-        text-align: center;
-      }
-      #campo {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        margin: 20px auto;
-        margin-bottom: 10px;
-        padding: 20px 10px;
-        border-radius: 10px;
-        width: 100%;
-        max-width: 280px;
-        aspect-ratio: 2 / 3;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Football_field.svg");
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        justify-content: space-between;
-        padding-top: 20%;
-      }
-      .linea {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        flex-wrap: nowrap;
-      }
-      .posizione {
-        background-color: var(--secondary);
-        padding: 5px;
-        border-radius: 10px;
-        width: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-shrink: 0;
-      }
-      .posizione label {
-        /* font-weight: bold; */
-        font-size: 0.6rem;
-        margin-top: 8px;
-        white-space: nowrap;
-      }
-      select {
-        width: 100%;
-        max-width: 100%;
-        font-weight: bold;
-        font-size: 12px;
-        text-align: center;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-color: var(--quaternary);
-        color: var(--bianco);
-        border: none;
-        padding: 6px;
-        border-radius: 5px;
-      }
-    </style>
+    <style></style>
   </head>
   <body>
     <div id="intestazione">
-      <h2>Formazione</h2>
-      <a href="storico.html" class="link">STORICO</a>
+      <h2 id="titolo">PARTITA</h2>
+
+      <div class="navigation-div">
+        <a href="storico.html" class="link">Statistiche</a>
+        <a href="index.html" class="link">Allenamento</a>
+      </div>
+    </div>
+
+    <div id="div-data-partita">
+      <label for="dataPartita">Data partita</label>
+      <input type="date" id="dataPartita" name="dataPartita" required />
     </div>
 
     <div id="campo">
@@ -120,50 +69,41 @@
         <select id="p2"></select>
         <select id="p3"></select>
         <select id="p4"></select>
+        <select id="p5"></select>
       </div>
       <div class="riga-due">
-        <select id="p5"></select>
         <select id="p6"></select>
         <select id="p7"></select>
         <select id="p8"></select>
+        <select id="p9"></select>
+        <select id="p10"></select>
       </div>
     </div>
 
-    <script type="module">
-      import { giocatori, abbreviaNomeFormazione } from "./giocatori.js";
+    <button id="salvaFormazione">Salva Formazione</button>
 
-      const ids = [
-        "portiere",
-        "dif1",
-        "dif2",
-        "dif3",
-        "cen1",
-        "cen2",
-        "att",
-        "p1",
-        "p2",
-        "p3",
-        "p4",
-        "p5",
-        "p6",
-        "p7",
-        "p8",
-      ];
+    <div id="votiContainer"></div>
+    <button id="salvaPagella">Salva Pagella</button>
 
-      ids.forEach((id) => {
-        const select = document.getElementById(id);
-        const opzioneVuota = document.createElement("option");
-        opzioneVuota.value = "";
-        opzioneVuota.textContent = "-";
-        select.appendChild(opzioneVuota);
-
-        giocatori.forEach((nome) => {
-          const opt = document.createElement("option");
-          opt.value = nome;
-          opt.textContent = abbreviaNomeFormazione(nome);
-          select.appendChild(opt);
-        });
-      });
+    <!-- Firebase compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
+        authDomain: "allenamenti-motra-senior.firebaseapp.com",
+        projectId: "allenamenti-motra-senior",
+        storageBucket: "allenamenti-motra-senior.firebasestorage.app",
+        messagingSenderId: "816511360311",
+        appId: "1:816511360311:web:d50530672d926d48f0ceb2",
+        measurementId: "G-M8SB7S7DQ7",
+        databaseURL:
+          "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
+      };
+      firebase.initializeApp(firebaseConfig);
+      window.firebaseDB = firebase.database();
     </script>
+
+    <script type="module" src="formazione.js"></script>
   </body>
 </html>

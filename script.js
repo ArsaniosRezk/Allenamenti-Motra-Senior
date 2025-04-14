@@ -75,18 +75,13 @@ function creaToggle(label, index, type) {
 });
 
 // Mostra/nasconde i bonus se allenamento
-const tipoSelect = document.getElementById("tipoAttivita");
 function aggiornaBonusVisibility() {
-  const isAllenamento = tipoSelect.value === "allenamento";
   document.querySelectorAll(".bonus-container").forEach((el) => {
-    el.style.display = isAllenamento ? "flex" : "none";
+    el.style.display = "flex";
   });
   const divSquadra = document.querySelector(".squadra");
-  if (divSquadra) divSquadra.style.display = isAllenamento ? "none" : "flex";
+  if (divSquadra) divSquadra.style.display = "none";
 }
-
-tipoSelect.addEventListener("change", aggiornaBonusVisibility);
-aggiornaBonusVisibility();
 
 // Gestione toggle 3 stati con feedback visivo
 function aggiornaToggleVisual(toggle) {
@@ -125,11 +120,10 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const dataAllenamento = document.getElementById("dataAllenamento").value;
-  const tipoAttivita = tipoSelect.value;
-  const isAllenamento = tipoAttivita === "allenamento";
+  const isAllenamento = true;
 
   const allenamento = {
-    tipo: tipoAttivita,
+    tipo: "allenamento",
     data: dataAllenamento,
     timestamp: new Date().toISOString(),
     giocatori: {},
@@ -178,7 +172,9 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    await firebaseDB.ref("allenamenti").push(allenamento);
+    await firebaseDB
+      .ref(allenamento.tipo === "partita" ? "partite" : "allenamenti")
+      .push(allenamento);
     form.reset();
     document.querySelectorAll(".toggle-3").forEach((toggle) => {
       toggle.dataset.state = "0";

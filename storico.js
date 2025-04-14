@@ -1,4 +1,4 @@
-// storico.js (modulare)
+// storico.js (modificato per nuova logica partite)
 import { giocatori as listaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
 import { mostraAvviso } from "./utils.js";
@@ -10,42 +10,21 @@ const statsDiv = document.getElementById("statisticheContainer");
 
 const statsAllenamento = {};
 const statsPartita = {};
-// const ultimoVotoAllenamento = {};
-// const ultimoVotoPartita = {};
 let numeroAllenamenti = 0;
 const assenzeAllenamento = {};
-// const eccezioniAssenze = [];
 
 function inizializzaStats() {
   giocatori.forEach((nome) => {
     statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
-    statsPartita[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
+    statsPartita[nome] = {
+      presenze: 0,
+      sommaVoti: 0,
+      media: 0,
+      minuti: 0,
+      _conteggioMedia: 0,
+    };
     assenzeAllenamento[nome] = 0;
   });
-}
-
-function creaCronologia(allenamentiArray) {
-  storicoDiv.innerHTML = "";
-  const titolo = document.createElement("h3");
-  titolo.textContent = "Cronologia";
-  storicoDiv.appendChild(titolo);
-
-  // Prima crea tutti gli eventi e memorizzali
-  const containers = [];
-  const backupUltimoAllenamento = {};
-  const backupUltimaPartita = {};
-
-  for (let i = allenamentiArray.length - 1; i >= 0; i--) {
-    const all = allenamentiArray[i];
-    const container = creaEvento(
-      all,
-      backupUltimoAllenamento,
-      backupUltimaPartita
-    );
-    containers.unshift(container);
-  }
-
-  containers.forEach((c) => storicoDiv.appendChild(c));
 }
 
 function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
@@ -86,7 +65,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     e.stopPropagation();
     if (confirm("Sei sicuro di voler eliminare questo elemento?")) {
       firebaseDB
-        .ref("allenamenti")
+        .ref(`${tipo === "partita" ? "partite" : "allenamenti"}`)
         .child(all.id)
         .remove()
         .then(() => location.reload());
@@ -167,6 +146,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     const presente = all.giocatori && all.giocatori[nome] !== undefined;
     const voto =
       all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
+    const minuti = all.giocatori?.[nome]?.minuti;
     const commento = all.giocatori?.[nome]?.commento || "";
     const abbreviazione = abbreviaNome(nome);
 
@@ -195,13 +175,20 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
       tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${
         isNaN(voto) ? "-" : voto
       } <span class="freccia ${classe}">${freccia}</span>`;
-
       tdCommento.textContent = commento;
 
       const stats =
         tipo === "partita" ? statsPartita[nome] : statsAllenamento[nome];
       stats.presenze++;
-      if (!isNaN(voto)) stats.sommaVoti += voto;
+
+      if (tipo === "partita") {
+        if (!isNaN(minuti) && !isNaN(voto)) {
+          stats.sommaVoti += voto;
+          stats._conteggioMedia++;
+        }
+      } else {
+        if (!isNaN(voto)) stats.sommaVoti += voto;
+      }
     } else {
       tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> assente`;
       tdCommento.textContent = "";
@@ -234,11 +221,17 @@ function creaTabellaStatistiche(statsObj, titolo) {
       : "tabella-partite";
 
   let ordinati = Object.entries(statsObj).map(([nome, dati]) => {
-    const mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
+    let mediaBase;
+    if (titolo === "Statistiche Partite") {
+      const conteggioMedia = dati._conteggioMedia || 0;
+      mediaBase = conteggioMedia > 0 ? dati.sommaVoti / conteggioMedia : 0;
+    } else {
+      mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
+    }
 
     let media;
     if (titolo === "Statistiche Partite") {
-      media = mediaBase; // nessuna penalità o bonus
+      media = mediaBase;
     } else {
       const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
       const mediaPenalizzata = mediaBase * (1 - penalita);
@@ -276,7 +269,11 @@ function creaTabellaStatistiche(statsObj, titolo) {
 
   ordinati.forEach((dati, i) => {
     let classeMedia = "";
-    if (dati.presenze > 0) {
+    let mediaDisplay = "-";
+    let presenzeDisplay = dati.nome === "Squadra" ? "" : dati.presenze;
+
+    if (dati.presenze > 0 && dati.media > 0) {
+      mediaDisplay = dati.media.toFixed(2);
       if (dati.media < 6) classeMedia = "media-bassa";
       else if (dati.media < 7) classeMedia = "media-media";
       else if (dati.media < 8) classeMedia = "media-buona";
@@ -284,56 +281,60 @@ function creaTabellaStatistiche(statsObj, titolo) {
     }
 
     html += `<tr class="${i % 2 === 0 ? "riga-pari" : "riga-dispari"}">
-      <td>${dati.nome}</td>
-      <td class="centrato">${dati.presenze}</td>
-      <td class="centrato ${classeMedia}">${
-      dati.presenze === 0 ? "-" : dati.media.toFixed(2)
-    }</td>
-    </tr>`;
+            <td>${dati.nome}</td>
+            <td class="centrato">${presenzeDisplay}</td>
+            <td class="centrato ${classeMedia}">${mediaDisplay}</td>
+          </tr>`;
   });
 
   html += `</tbody></table><br/>`;
   return html;
 }
 
-firebaseDB.ref("allenamenti").once("value", (snapshot) => {
-  const allenamenti = snapshot.val();
-  if (!allenamenti) {
-    storicoDiv.innerHTML = "<p>Nessun allenamento o partita registrata.</p>";
-    return;
-  }
+Promise.all([
+  firebaseDB.ref("allenamenti").once("value"),
+  firebaseDB.ref("partite").once("value"),
+]).then(([snapAll, snapPar]) => {
+  const allenamenti = snapAll.val();
+  const partite = snapPar.val();
   inizializzaStats();
-  const allenamentiArray = Object.keys(allenamenti)
-    .map((id) => ({ id, ...allenamenti[id] }))
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  creaCronologia(allenamentiArray);
+
+  const arrayAllenamenti = allenamenti
+    ? Object.entries(allenamenti).map(([id, val]) => ({ id, ...val }))
+    : [];
+
+  const arrayPartite = partite
+    ? Object.entries(partite).map(([id, val]) => ({
+        id,
+        tipo: "partita",
+        ...val,
+      }))
+    : [];
+
+  arrayAllenamenti.sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
+  arrayPartite.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  document.getElementById("storicoContainer").innerHTML =
+    "<h3>Cronologia Allenamenti</h3>";
+  arrayAllenamenti.forEach((all) => {
+    const evento = creaEvento(all, {}, {});
+    document.getElementById("storicoContainer").appendChild(evento);
+  });
+
+  const partiteDiv = document.createElement("div");
+  const titoloPartite = document.createElement("h3");
+  titoloPartite.textContent = "Cronologia Partite";
+  partiteDiv.appendChild(titoloPartite);
+  arrayPartite.forEach((par) => {
+    const evento = creaEvento(par, {}, {});
+    partiteDiv.appendChild(evento);
+  });
+  document.getElementById("storicoContainer").appendChild(partiteDiv);
+
   document.getElementById("statisticheAllenamentiContainer").innerHTML =
     creaTabellaStatistiche(statsAllenamento, "Statistiche Allenamenti");
-
   document.getElementById("statistichePartiteContainer").innerHTML =
     creaTabellaStatistiche(statsPartita, "Statistiche Partite");
-
-  document.querySelectorAll(".btn-copia-statistiche").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const bloccoId = btn.getAttribute("data-blocco");
-      const blocco = document.getElementById(bloccoId);
-      if (!blocco) return;
-
-      // Nasconde temporaneamente il bottone
-      btn.style.display = "none";
-      blocco.classList.add("screenshot-mode");
-
-      html2canvas(blocco).then((canvas) => {
-        blocco.classList.remove("screenshot-mode");
-        btn.style.display = ""; // Ripristina bottone
-
-        canvas.toBlob((blob) => {
-          navigator.clipboard
-            .write([new ClipboardItem({ "image/png": blob })])
-            .then(() => mostraAvviso("Copiato come immagine!", "success"))
-            .catch(() => mostraAvviso("Errore nella copia.", "error"));
-        });
-      });
-    });
-  });
 });
