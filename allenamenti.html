@@ -3,36 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Storico Allenamenti</title>
-    <link rel="stylesheet" href="style.css" />
+    <title>Nuova Pagella</title>
     <link rel="stylesheet" href="colors.css" />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="intestazione">
-      <h2 id="titolo">PRESTAZIONI <br />MOTRA SENIOR</h2>
+      <h2 id="titolo">ALLENAMENTO</h2>
 
       <div class="navigation-div">
-        <a href="index.html" class="link">Allenamento</a>
-        <a href="formazione.html" class="link">Partita</a>
+        <a href="index.html" class="link">Statistiche</a>
+        <a href="partite.html" class="link">Partita</a>
       </div>
     </div>
 
-    <div id="statisticheAllenamentiContainer"></div>
-    <div id="statistichePartiteContainer"></div>
+    <div id="info-pagella">
+      <div>
+        <label for="dataAllenamento">Data</label>
+        <input
+          type="date"
+          id="dataAllenamento"
+          name="dataAllenamento"
+          required
+        />
+      </div>
 
-    <hr />
-    <div id="storicoContainer"></div>
+      <!-- <div>
+        <label for="tipoAttivita">Tipo</label>
+        <select id="tipoAttivita" name="tipoAttivita" required>
+          <option value="allenamento">Allenamento</option>
+          <option value="partita">Partita</option>
+        </select>
+      </div> -->
+    </div>
 
-    <!-- Firebase compat -->
+    <form id="allenamentoForm">
+      <div id="lista-giocatori"></div>
+
+      <button type="submit">Salva Pagella</button>
+    </form>
+
+    <p id="messaggio"></p>
+
+    <!-- Firebase compatibile con HTML semplice -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
+      // Inizializza Firebase (compat)
       const firebaseConfig = {
         apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
         authDomain: "allenamenti-motra-senior.firebaseapp.com",
@@ -47,11 +65,12 @@
 
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
+
+      // Rendi disponibile a script.js
       window.firebaseDB = db;
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <script type="module" src="storico.js"></script>
+    <!-- ORA puoi caricare il tuo script -->
+    <script type="module" src="allenamenti.js"></script>
   </body>
 </html>
