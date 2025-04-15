@@ -135,17 +135,18 @@ async function calcolaStatistichePartite() {
   const stats = {};
 
   Object.values(partite || {}).forEach((partita) => {
+    if (!partita.giocatori) return; // ⛔ Salta partite senza pagella
+
     (partita.titolari || []).forEach((nome) => {
       if (!stats[nome]) stats[nome] = { titolare: 0, minuti: 0 };
       stats[nome].titolare++;
     });
-    if (partita.giocatori) {
-      Object.entries(partita.giocatori).forEach(([nome, dati]) => {
-        const key = nome;
-        if (!stats[key]) stats[key] = { titolare: 0, minuti: 0 };
-        if (!isNaN(dati.minuti)) stats[key].minuti += dati.minuti;
-      });
-    }
+
+    Object.entries(partita.giocatori).forEach(([nome, dati]) => {
+      const key = nome;
+      if (!stats[key]) stats[key] = { titolare: 0, minuti: 0 };
+      if (!isNaN(dati.minuti)) stats[key].minuti += dati.minuti;
+    });
   });
 
   mostraStatistichePartite(stats);
