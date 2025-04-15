@@ -1,33 +1,9 @@
 // script.js
 import { giocatori as listaGiocatori } from "./giocatori.js";
+import { mostraAvviso } from "./utils.js";
 
 const firebaseDB = window.firebaseDB;
 const giocatoriListDiv = document.getElementById("lista-giocatori");
-
-function mostraAvviso(msg, tipo = "success") {
-  // Crea il avviso se non esiste
-  if (!document.getElementById("avviso")) {
-    const avviso = document.createElement("div");
-    avviso.id = "avviso";
-    document.body.appendChild(avviso);
-  }
-
-  const avviso = document.getElementById("avviso");
-  avviso.textContent = msg;
-
-  // Rimuove classi precedenti
-  avviso.classList.remove("success", "error");
-
-  // Aggiunge la classe in base al tipo
-  avviso.classList.add(tipo);
-
-  // Mostra il avviso
-  avviso.style.display = "block";
-
-  setTimeout(() => {
-    avviso.style.display = "none";
-  }, 2000);
-}
 
 // Funzione: crea le opzioni voto
 function creaSelectVoto(index) {
@@ -52,11 +28,10 @@ function creaToggle(label, index, type) {
 }
 
 // Crea dinamicamente la lista dei giocatori + squadra
-[...listaGiocatori, "Squadra"].forEach((nome, index) => {
-  const isSquadra = nome === "Squadra";
-
+listaGiocatori.forEach((nome, index) => {
   const div = document.createElement("div");
-  div.className = isSquadra ? "squadra" : "giocatore";
+  div.className = "giocatore";
+
   div.classList.add("giocatore-box"); // stile comune
 
   div.innerHTML = `
@@ -79,8 +54,6 @@ function aggiornaBonusVisibility() {
   document.querySelectorAll(".bonus-container").forEach((el) => {
     el.style.display = "flex";
   });
-  const divSquadra = document.querySelector(".squadra");
-  if (divSquadra) divSquadra.style.display = "none";
 }
 
 // Gestione toggle 3 stati con feedback visivo
@@ -129,7 +102,7 @@ form.addEventListener("submit", async (e) => {
     giocatori: {},
   };
 
-  [...listaGiocatori, "Squadra"].forEach((nome, index) => {
+  listaGiocatori.forEach((nome, index) => {
     const votoSelect = document.querySelector(
       `select[name="voto"][data-index="${index}"]`
     );
@@ -155,7 +128,7 @@ form.addEventListener("submit", async (e) => {
     const bonusPercent = (bonusAtletica + bonusPartitella) * 0.05;
     const votoFinale = parseFloat((voto * (1 + bonusPercent)).toFixed(2));
 
-    if (nome === "Squadra" || !isNaN(voto)) {
+    if (!isNaN(voto)) {
       allenamento.giocatori[nome] = {
         voto,
         bonusAtletica,
@@ -166,7 +139,11 @@ form.addEventListener("submit", async (e) => {
     }
   });
 
-  if (Object.keys(allenamento.giocatori).length === 0) {
+  const votiValidi = Object.values(allenamento.giocatori).filter(
+    (dati) => !isNaN(dati.voto)
+  );
+
+  if (votiValidi.length === 0) {
     mostraAvviso("Nessun giocatore ha un voto", "error");
     return;
   }
@@ -181,7 +158,7 @@ form.addEventListener("submit", async (e) => {
       aggiornaToggleVisual(toggle);
     });
     aggiornaBonusVisibility();
-    mostraAvviso("Pagella salvata!", "success");
+    mostraAvviso("Allenamento salvato", "success");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
     console.error("Errore nel salvataggio:", err);

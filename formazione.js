@@ -141,7 +141,7 @@ async function calcolaStatistichePartite() {
     });
     if (partita.giocatori) {
       Object.entries(partita.giocatori).forEach(([nome, dati]) => {
-        const key = nome === "squadra" ? "Squadra" : nome;
+        const key = nome;
         if (!stats[key]) stats[key] = { titolare: 0, minuti: 0 };
         if (!isNaN(dati.minuti)) stats[key].minuti += dati.minuti;
       });
@@ -161,10 +161,10 @@ function mostraCampiVoto(titolari = [], panchina = [], voti = {}) {
   squadraBox.innerHTML = `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
       <span style="width: 90px; text-align: left; font-weight: bold;">Squadra</span>
-      ${creaSelectVoto("squadra", voti["squadra"]?.voto)}
+      ${creaSelectVoto("Squadra", voti["Squadra"]?.voto)}
     </div>
-    <textarea placeholder="Commento alla squadra" data-nome="squadra" class="input-commento">${
-      voti["squadra"]?.commento || ""
+    <textarea placeholder="Osservazioni alla squadra" data-nome="squadra" class="input-commento">${
+      voti["Squadra"]?.commento || ""
     }</textarea>
   `;
   votiContainer.appendChild(squadraBox);
@@ -225,13 +225,13 @@ async function salvaFormazione() {
 
 async function salvaPagella() {
   const data = dataInput.value;
-  if (!data) return mostraAvviso("Inserisci una data.", "error");
+  if (!data) return mostraAvviso("Inserisci una data", "error");
   const voti = {};
   let errore = false;
 
   document.querySelectorAll(".input-voto").forEach((el) => {
     const nome = el.dataset.nome;
-    const key = nome === "squadra" ? "Squadra" : nome;
+    const key = nome;
     const voto = parseFloat(el.value);
     if (!isNaN(voto)) {
       voti[key] = { voto, votoFinale: voto };
@@ -248,14 +248,14 @@ async function salvaPagella() {
     if (nome !== "squadra") {
       if (haVoto && !haMinuti) {
         mostraAvviso(
-          `Hai inserito un voto per ${nome} ma mancano i minuti.`,
+          `Hai inserito un voto per ${nome} ma mancano i minuti`,
           "error"
         );
         errore = true;
       }
       if (!haVoto && haMinuti) {
         mostraAvviso(
-          `Hai inserito i minuti per ${nome} ma manca il voto.`,
+          `Hai inserito i minuti per ${nome} ma manca il voto`,
           "error"
         );
         errore = true;
@@ -279,7 +279,7 @@ async function salvaPagella() {
   });
 
   await firebaseDB.ref(`partite/${data}/giocatori`).set(voti);
-  mostraAvviso("Pagella salvata!");
+  mostraAvviso("Partita salvata");
 }
 
 document

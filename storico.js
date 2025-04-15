@@ -68,7 +68,14 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
         .ref(`${tipo === "partita" ? "partite" : "allenamenti"}`)
         .child(all.id)
         .remove()
-        .then(() => location.reload());
+        .then(() => {
+          const genere = tipo === "partita" ? "eliminata" : "eliminato";
+          mostraAvviso(`${tipoCapitalizzato} ${genere}`, "success");
+          setTimeout(() => location.reload(), 1000);
+        })
+        .catch(() => {
+          mostraAvviso("Errore durante l'eliminazione", "error");
+        });
     }
   });
 
@@ -90,10 +97,10 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
         navigator.clipboard
           .write([new ClipboardItem({ "image/png": blob })])
           .then(() => {
-            mostraAvviso("Copiato come immagine!", "success");
+            mostraAvviso("Copiato come immagine", "success");
           })
           .catch(() => {
-            mostraAvviso("Errore nella copia.", "error");
+            mostraAvviso("Errore nella copia", "error");
           });
       });
     });
