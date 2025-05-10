@@ -78,9 +78,12 @@ function getFormazioneCorrente() {
 
 function creaSelectVoto(nome, valorePreselezionato = "") {
   let options = '<option value="">-</option>';
+  options += `<option value="S.V." ${
+    valorePreselezionato === "S.V." ? "selected" : ""
+  }>S.V.</option>`;
   for (let v = 1.0; v <= 10.0; v += 0.25) {
-    const voto = v.toFixed(2).replace(".00", "");
-    const selected = voto === String(valorePreselezionato) ? "selected" : "";
+    const voto = Number(v.toFixed(2)).toString(); // ← converte 6.50 in "6.5"
+    const selected = String(valorePreselezionato) === voto ? "selected" : "";
     options += `<option value="${voto}" ${selected}>${voto}</option>`;
   }
   return `<label>Voto</label><select data-nome="${nome}" class="input-voto" style="width: 80px;">${options}</select>`;
@@ -233,9 +236,14 @@ async function salvaPagella() {
   document.querySelectorAll(".input-voto").forEach((el) => {
     const nome = el.dataset.nome;
     const key = nome;
-    const voto = parseFloat(el.value);
-    if (!isNaN(voto)) {
-      voti[key] = { voto, votoFinale: voto };
+    const votoVal = el.value;
+    if (votoVal === "S.V.") {
+      voti[key] = { voto: "S.V.", votoFinale: "S.V." };
+    } else {
+      const voto = parseFloat(votoVal);
+      if (!isNaN(voto)) {
+        voti[key] = { voto, votoFinale: voto };
+      }
     }
   });
 

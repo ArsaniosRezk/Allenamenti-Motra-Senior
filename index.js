@@ -1,4 +1,4 @@
-// storico.js (modificato per nuova logica partite)
+// index.js (modificato per gestire "S.V.")
 import { giocatori as listaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
 import { mostraAvviso } from "./utils.js";
@@ -85,35 +85,17 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   copiaBtn.title = "Copia evento come immagine";
   copiaBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-
-    // Forza modalità screenshot
     container.classList.add("screenshot-mode");
-
     html2canvas(container).then((canvas) => {
-      // Ripristina stile originale
       container.classList.remove("screenshot-mode");
-
       canvas.toBlob((blob) => {
         navigator.clipboard
           .write([new ClipboardItem({ "image/png": blob })])
-          .then(() => {
-            mostraAvviso("Copiato come immagine", "success");
-          })
-          .catch(() => {
-            mostraAvviso("Errore nella copia", "error");
-          });
+          .then(() => mostraAvviso("Copiato come immagine", "success"))
+          .catch(() => mostraAvviso("Errore nella copia", "error"));
       });
     });
   });
-
-  // const modificaBtn = document.createElement("button");
-  // modificaBtn.className = "btn-modifica";
-  // modificaBtn.innerHTML = `<i class="fas fa-pen-to-square"></i>`;
-  // modificaBtn.title = "Modifica evento";
-  // modificaBtn.addEventListener("click", (e) => {
-  //   e.stopPropagation();
-  //   alert("Funzione di modifica non ancora implementata.");
-  // });
 
   const dettaglio = document.createElement("div");
   dettaglio.className = "evento-dettaglio nascosto";
@@ -130,12 +112,10 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
       : "riga-dispari riga-azioni";
 
   const tdAzioni = document.createElement("td");
-  tdAzioni.colSpan = 2; // Importante: la tabella ha 2 colonne, quindi la uniamo
+  tdAzioni.colSpan = 2;
 
-  // Wrapper per i 3 bottoni affiancati
   const actionsWrapper = document.createElement("div");
   actionsWrapper.className = "azioni-wrapper";
-  // actionsWrapper.appendChild(modificaBtn);
   actionsWrapper.appendChild(copiaBtn);
   actionsWrapper.appendChild(deleteBtn);
 
@@ -151,8 +131,9 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     tr.className = index % 2 === 0 ? "riga-pari" : "riga-dispari";
 
     const presente = all.giocatori && all.giocatori[nome] !== undefined;
-    const voto =
+    const votoRaw =
       all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
+    const voto = votoRaw === "S.V." ? NaN : parseFloat(votoRaw);
     const minuti = all.giocatori?.[nome]?.minuti;
     const commento = all.giocatori?.[nome]?.commento || "";
     const abbreviazione = abbreviaNome(nome);
@@ -179,9 +160,9 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
       }
       ultimoVoti[nome] = voto;
 
-      tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${
-        isNaN(voto) ? "-" : voto
-      } <span class="freccia ${classe}">${freccia}</span>`;
+      const votoDisplay =
+        votoRaw === "S.V." ? "S.V." : isNaN(voto) ? "-" : voto;
+      tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${votoDisplay} <span class="freccia ${classe}">${freccia}</span>`;
       tdCommento.textContent = commento;
 
       const stats =
@@ -189,7 +170,8 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
       stats.presenze++;
 
       if (tipo === "partita") {
-        if (!isNaN(minuti) && !isNaN(voto)) {
+        if (!isNaN(minuti)) stats.minuti += minuti;
+        if (!isNaN(voto)) {
           stats.sommaVoti += voto;
           stats._conteggioMedia++;
         }
@@ -249,7 +231,6 @@ function creaTabellaStatistiche(statsObj, titolo) {
     return { nome, ...dati, media };
   });
 
-  // Se siamo nella tabella partite, metti "Squadra" in fondo
   if (titolo === "Statistiche Partite") {
     ordinati = ordinati.sort((a, b) => {
       if (a.nome === "Squadra") return 1;
