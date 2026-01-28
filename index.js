@@ -1,7 +1,7 @@
 // index.js (modificato per gestire "S.V.")
 import { giocatori as listaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
-import { mostraAvviso } from "./utils.js";
+import { mostraAvviso, condividiImmagine } from "./utils.js";
 
 const giocatori = [...listaGiocatori, "Squadra"];
 
@@ -89,10 +89,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     html2canvas(container).then((canvas) => {
       container.classList.remove("screenshot-mode");
       canvas.toBlob((blob) => {
-        navigator.clipboard
-          .write([new ClipboardItem({ "image/png": blob })])
-          .then(() => mostraAvviso("Copiato come immagine", "success"))
-          .catch(() => mostraAvviso("Errore nella copia", "error"));
+        condividiImmagine(blob, `evento_${all.id}.png`);
       });
     });
   });
@@ -336,10 +333,7 @@ Promise.all([
         html2canvas(targetElement).then((canvas) => {
           targetElement.classList.remove("screenshot-mode");
           canvas.toBlob((blob) => {
-            navigator.clipboard
-              .write([new ClipboardItem({ "image/png": blob })])
-              .then(() => mostraAvviso("Copiato come immagine", "success"))
-              .catch(() => mostraAvviso("Errore nella copia", "error"));
+            condividiImmagine(blob, "statistiche.png");
           });
         });
       }
