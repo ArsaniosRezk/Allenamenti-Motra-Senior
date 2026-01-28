@@ -523,6 +523,10 @@ ul {
   display: none !important;
 }
 
+.screenshot-mode .btn-copia-statistiche {
+  display: none !important;
+}
+
 .screenshot-mode .riga-azioni {
   display: none !important;
 }

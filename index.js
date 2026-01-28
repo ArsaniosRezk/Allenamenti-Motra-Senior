@@ -81,7 +81,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
 
   const copiaBtn = document.createElement("button");
   copiaBtn.className = "btn-copia";
-  copiaBtn.innerHTML = `<i class="fas fa-camera"></i>`;
+  copiaBtn.innerHTML = `<i class="fas fa-share-nodes"></i>`;
   copiaBtn.title = "Copia evento come immagine";
   copiaBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -248,7 +248,7 @@ function creaTabellaStatistiche(statsObj, titolo) {
       <div class="statistiche-header">
         <h3>${titolo}</h3>
         <button class="btn-copia-statistiche" data-blocco="blocco-${idTabella}" title="Copia come immagine">
-          <i class="fas fa-camera"></i>
+          <i class="fas fa-share-nodes"></i>
         </button>
       </div>
       <table class="tabella-statistiche" id="${idTabella}">
@@ -293,10 +293,10 @@ Promise.all([
 
   const arrayPartite = partite
     ? Object.entries(partite).map(([id, val]) => ({
-        id,
-        tipo: "partita",
-        ...val,
-      }))
+      id,
+      tipo: "partita",
+      ...val,
+    }))
     : [];
 
   arrayAllenamenti.sort(
@@ -325,4 +325,24 @@ Promise.all([
     creaTabellaStatistiche(statsAllenamento, "Statistiche Allenamenti");
   document.getElementById("statistichePartiteContainer").innerHTML =
     creaTabellaStatistiche(statsPartita, "Statistiche Partite");
+
+  document.querySelectorAll(".btn-copia-statistiche").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const targetId = btn.getAttribute("data-blocco");
+      const targetElement = document.getElementById(targetId);
+
+      if (targetElement) {
+        targetElement.classList.add("screenshot-mode");
+        html2canvas(targetElement).then((canvas) => {
+          targetElement.classList.remove("screenshot-mode");
+          canvas.toBlob((blob) => {
+            navigator.clipboard
+              .write([new ClipboardItem({ "image/png": blob })])
+              .then(() => mostraAvviso("Copiato come immagine", "success"))
+              .catch(() => mostraAvviso("Errore nella copia", "error"));
+          });
+        });
+      }
+    });
+  });
 });
