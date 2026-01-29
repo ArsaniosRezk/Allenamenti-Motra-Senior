@@ -1,109 +1,94 @@
 <!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PARTITA</title>
-    <link rel="stylesheet" href="colors.css" />
-    <link rel="stylesheet" href="style.css" />
-    <style></style>
-  </head>
-  <body>
-    <div id="intestazione">
-      <h2 id="titolo">PARTITA</h2>
 
-      <div class="navigation-div">
-        <a href="index.html" class="link">Statistiche</a>
-        <a href="allenamenti.html" class="link">Allenamento</a>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PARTITA</title>
+  <link rel="stylesheet" href="colors.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style></style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+  <div id="intestazione">
+    <h2 id="titolo">PARTITA</h2>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <i class="fas fa-chart-line"></i>
+      <span>Stats</span>
+    </a>
+    <a href="partite.html" class="nav-item active">
+      <i class="fas fa-futbol"></i>
+      <span>Partita</span>
+    </a>
+    <a href="allenamenti.html" class="nav-item">
+      <i class="fas fa-running"></i>
+      <span>Allen</span>
+    </a>
+  </nav>
+
+  <div id="div-data-partita">
+    <label for="dataPartita">Data partita</label>
+    <input type="date" id="dataPartita" name="dataPartita" required />
+  </div>
+
+  <div style="text-align: center; margin: 10px 0;">
+    <label for="moduloFormazione">Modulo</label>
+    <select id="moduloFormazione">
+      <option value="3-2-1">3-2-1</option>
+      <option value="2-3-1">2-3-1</option>
+    </select>
+  </div>
+
+  <div id="campo"></div>
+
+  <h3 id="panchina-title">Panchina</h3>
+  <div id="div-panchina">
+    <div class="riga-uno">
+      <select id="p1"></select>
+      <select id="p2"></select>
+      <select id="p3"></select>
+      <select id="p4"></select>
+      <select id="p5"></select>
     </div>
-
-    <div id="div-data-partita">
-      <label for="dataPartita">Data partita</label>
-      <input type="date" id="dataPartita" name="dataPartita" required />
+    <div class="riga-due">
+      <select id="p6"></select>
+      <select id="p7"></select>
+      <select id="p8"></select>
+      <select id="p9"></select>
+      <select id="p10"></select>
     </div>
+  </div>
 
-    <div id="campo">
-      <div class="linea">
-        <div class="posizione">
-          <select id="att"></select>
-          <label>PC</label>
-        </div>
-      </div>
-      <div class="linea">
-        <div class="posizione">
-          <select id="cen1"></select>
-          <label>CC</label>
-        </div>
-        <div class="posizione">
-          <select id="cen2"></select>
-          <label>CC</label>
-        </div>
-      </div>
-      <div class="linea">
-        <div class="posizione">
-          <select id="dif3"></select>
-          <label>TS</label>
-        </div>
-        <div class="posizione">
-          <select id="dif2"></select>
-          <label>DC</label>
-        </div>
-        <div class="posizione">
-          <select id="dif1"></select>
-          <label>TD</label>
-        </div>
-      </div>
-      <div class="linea">
-        <div class="posizione">
-          <select id="portiere"></select>
-          <label>Por</label>
-        </div>
-      </div>
-    </div>
+  <button id="salvaFormazione">Salva Formazione</button>
 
-    <h3 id="panchina-title">Panchina</h3>
-    <div id="div-panchina">
-      <div class="riga-uno">
-        <select id="p1"></select>
-        <select id="p2"></select>
-        <select id="p3"></select>
-        <select id="p4"></select>
-        <select id="p5"></select>
-      </div>
-      <div class="riga-due">
-        <select id="p6"></select>
-        <select id="p7"></select>
-        <select id="p8"></select>
-        <select id="p9"></select>
-        <select id="p10"></select>
-      </div>
-    </div>
+  <div id="votiContainer"></div>
+  <button id="salvaPagella">Salva Pagella</button>
 
-    <button id="salvaFormazione">Salva Formazione</button>
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
+      authDomain: "allenamenti-motra-senior.firebaseapp.com",
+      projectId: "allenamenti-motra-senior",
+      storageBucket: "allenamenti-motra-senior.firebasestorage.app",
+      messagingSenderId: "816511360311",
+      appId: "1:816511360311:web:d50530672d926d48f0ceb2",
+      measurementId: "G-M8SB7S7DQ7",
+      databaseURL:
+        "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
+    };
+    firebase.initializeApp(firebaseConfig);
+    window.firebaseDB = firebase.database();
+  </script>
 
-    <div id="votiContainer"></div>
-    <button id="salvaPagella">Salva Pagella</button>
+  <script type="module" src="partite.js"></script>
+</body>
 
-    <!-- Firebase compat -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
-        authDomain: "allenamenti-motra-senior.firebaseapp.com",
-        projectId: "allenamenti-motra-senior",
-        storageBucket: "allenamenti-motra-senior.firebasestorage.app",
-        messagingSenderId: "816511360311",
-        appId: "1:816511360311:web:d50530672d926d48f0ceb2",
-        measurementId: "G-M8SB7S7DQ7",
-        databaseURL:
-          "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
-      };
-      firebase.initializeApp(firebaseConfig);
-      window.firebaseDB = firebase.database();
-    </script>
-
-    <script type="module" src="partite.js"></script>
-  </body>
 </html>

@@ -1,4 +1,5 @@
-// script.js
+// No change needed for Allenamenti.js regarding date since no load action is performed.
+// Just ensuring no syntax errors were introduced.
 import { giocatori as listaGiocatori } from "./giocatori.js";
 import { mostraAvviso } from "./utils.js";
 

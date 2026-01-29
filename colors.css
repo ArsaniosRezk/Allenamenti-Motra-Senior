@@ -1,47 +1,64 @@
 :root {
   --sfondo: #0a2647;
   --testo: yellow;
+  /* Premium Dark Theme Palette */
+  --sfondo: #0f172a;
+  /* Slate 900 - Background */
+  --sfondo-card: #1e293b;
+  /* Slate 800 - Cards/Containers */
+  --testo: #f8fafc;
+  /* Slate 50 - Main Text */
+  --testo-muted: #94a3b8;
+  /* Slate 400 - Secondary Text */
 
-  --primary: #0a2647;
-  --secondary: #144272;
-  --tertiary: #205295;
-  --quaternary: #2c74b3;
+  --primary: #3b82f6;
+  /* Blue 500 - Primary Actions */
+  --primary-hover: #2563eb;
+  /* Blue 600 */
+  --secondary: #334155;
+  /* Slate 700 - Secondary Elements */
 
-  --bianco: white;
-  --nero: black;
+  --accent: #8b5cf6;
+  /* Violet 500 - Accents */
 
-  --interaction: #e7e77f;
+  --success: #10b981;
+  /* Emerald 500 */
+  --error: #ef4444;
+  /* Red 500 */
+  --warning: #f59e0b;
+  /* Amber 500 */
 
-  --link: #e7e77f;
+  /* Deprecated/Mapped for backward compatibility but updated values */
+  --bianco: var(--testo);
+  --link: var(--primary);
+  --interaction: var(--primary);
+  --placeholder: var(--testo-muted);
 
-  --placeholder: #fcfbfb5d;
+  /* Table/List Striping */
+  --tertiary: #1e293b;
+  /* Same as card for seamless look */
+  --quaternary: #334155;
+  /* Lighter for contrast */
 
-  --verde: #6bc26e;
-  --red: #e74c3c;
-  --light-gray: #ccc;
-  --light-green: #a0f2a0;
-  --medium-green: #d0f2c1;
-  --yellow: #fff6c1;
-  --light-red: #f8c1c1;
-  --avviso-text: white;
-  --table-even: #ebebeb;
-  --table-odd: #f5f5f5;
-  --bianco: white;
+  /* Specialized */
+  --toggle-negativo: var(--error);
+  --toggle-neutro: var(--testo-muted);
+  --toggle-positivo: var(--success);
 
-  /* alert salvatagio */
-  --avviso-success-bg: #4caf50;
-  --avviso-error-bg: #f44336;
+  --avviso-success-bg: var(--success);
+  --avviso-error-bg: var(--error);
 
-  /* toggle bonus */
-  --toggle-negativo: #ffa79e;
-  --toggle-neutro: #ccc;
-  --toggle-positivo: #7bd1a0;
-}
+  /* Media Voti Colors */
+  --media-bassa: var(--error);
+  --media-media: var(--warning);
+  --media-buona: var(--success);
+  --media-alta: #059669;
+  /* Emerald 600 */
 
-:root {
-  --btn-elimina-bg: #ffe5e5;
-  --btn-elimina-border: #ff9999;
-  --btn-elimina-text: #a30000;
+  /* Button specific */
+  --btn-elimina-bg: rgba(239, 68, 68, 0.1);
+  --btn-elimina-border: var(--error);
+  --btn-elimina-text: var(--error);
 }
 
 :root {

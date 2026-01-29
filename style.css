@@ -4,14 +4,91 @@
   box-sizing: border-box;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 body {
-  font-family: sans-serif;
-  padding: 10px;
-  max-width: 400px;
+  font-family: 'Inter', sans-serif;
+  padding: 10px 10px 80px 10px;
+  /* Added bottom padding for navbar */
+  max-width: 600px;
+  /* Slightly wider for modern feel */
   margin: auto;
   background-color: var(--sfondo);
   color: var(--testo);
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--sfondo-card);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-top: 1px solid var(--secondary);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: var(--testo-muted);
+  font-size: 0.75rem;
+  gap: 4px;
+  transition: color 0.2s;
+  flex: 1;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-item i {
+  font-size: 1.25rem;
+}
+
+/* Remove old navigation */
+.navigation-div {
+  display: none !important;
+}
+
+/* Card Styling */
+.card,
+.giocatore-box,
+.statistiche-blocco {
+  background-color: var(--sfondo-card);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--secondary);
+  margin-bottom: 16px;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--sfondo);
+  border: 1px solid var(--secondary);
+  color: var(--testo);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
 
 #intestazione {
   display: flex;
@@ -336,12 +413,15 @@ table tbody tr:nth-child(odd) td {
 table thead tr th:first-child {
   border-top-left-radius: 5px;
 }
+
 table thead tr th:last-child {
   border-top-right-radius: 5px;
 }
+
 table tbody tr:last-child td:first-child {
   border-bottom-left-radius: 5px;
 }
+
 table tbody tr:last-child td:last-child {
   border-bottom-right-radius: 5px;
 }
@@ -438,22 +518,26 @@ ul {
 
 /* Colori delle medie */
 .media-bassa {
-  background-color: var(--media-bassa) !important; /* rosso */
+  background-color: var(--media-bassa) !important;
+  /* rosso */
   color: white;
 }
 
 .media-media {
-  background-color: var(--media-media) !important; /* giallo */
+  background-color: var(--media-media) !important;
+  /* giallo */
   color: white;
 }
 
 .media-buona {
-  background-color: var(--media-buona) !important; /* verde */
+  background-color: var(--media-buona) !important;
+  /* verde */
   color: white;
 }
 
 .media-alta {
-  background-color: var(--media-alta) !important; /* verde scuro */
+  background-color: var(--media-alta) !important;
+  /* verde scuro */
   color: white;
 }
 
@@ -483,11 +567,13 @@ ul {
 }
 
 .riga-pari {
-  background-color: var(--tertiary); /* es: #f9f9f9 */
+  background-color: var(--tertiary);
+  /* es: #f9f9f9 */
 }
 
 .riga-dispari {
-  background-color: var(--quaternary); /* es: #ffffff */
+  background-color: var(--quaternary);
+  /* es: #ffffff */
 }
 
 .bottoni-wrapper {
@@ -710,7 +796,8 @@ ul {
 .statistiche-tabella {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px; /* testo piccolo */
+  font-size: 10px;
+  /* testo piccolo */
 }
 
 .statistiche-tabella td {
@@ -727,7 +814,8 @@ ul {
 .stat-valori {
   text-align: left !important;
   font-size: 12px;
-  color: var(--quaternary); /* o un altro colore a tua scelta */
+  color: var(--quaternary);
+  /* o un altro colore a tua scelta */
 }
 
 .riga-uno,
@@ -739,8 +827,8 @@ ul {
   width: 100%;
 }
 
-.riga-uno > select,
-.riga-due > select {
+.riga-uno>select,
+.riga-due>select {
   width: 55px;
   min-width: 55px;
 

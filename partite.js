@@ -3,39 +3,104 @@ import { giocatori, abbreviaNomeFormazione } from "./giocatori.js";
 import { mostraAvviso } from "./utils.js";
 
 const firebaseDB = window.firebaseDB;
-
-const ids = [
-  "portiere",
-  "dif1",
-  "dif2",
-  "dif3",
-  "cen1",
-  "cen2",
-  "att",
-  "p1",
-  "p2",
-  "p3",
-  "p4",
-  "p5",
-  "p6",
-  "p7",
-  "p8",
-  "p9",
-  "p10",
-];
-
+const divCampo = document.getElementById("campo");
+const selectModulo = document.getElementById("moduloFormazione");
 const dataInput = document.getElementById("dataPartita");
 const votiContainer = document.getElementById("votiContainer");
 
+// Conf dei moduli: definisce le righe (dall'alto "ATT" al basso "POR")
+// Ogni riga è un array di oggetti { id, label }
+const moduli = {
+  "3-2-1": [
+    [{ id: "att", label: "PC" }],
+    [
+      { id: "cen1", label: "CC" },
+      { id: "cen2", label: "CC" },
+    ],
+    [
+      { id: "dif3", label: "TS" },
+      { id: "dif2", label: "DC" },
+      { id: "dif1", label: "TD" },
+    ],
+    [{ id: "portiere", label: "POR" }],
+  ],
+  "2-3-1": [
+    [{ id: "att", label: "PC" }],
+    [
+      { id: "cen3", label: "CS" },
+      { id: "cen2", label: "CC" },
+      { id: "cen1", label: "CD" },
+    ],
+    [
+      { id: "dif2", label: "DS" },
+      { id: "dif1", label: "DD" },
+    ],
+    [{ id: "portiere", label: "POR" }],
+  ],
+};
+
+function getIdsCorrenti() {
+  const modulo = selectModulo.value;
+  const config = moduli[modulo];
+  const idsTitolari = [];
+  config.forEach((riga) => {
+    riga.forEach((slot) => idsTitolari.push(slot.id));
+  });
+  // Aggiungi panchina (sempre statici 1-10)
+  const idsPanchina = [];
+  for (let i = 1; i <= 10; i++) idsPanchina.push(`p${i}`);
+
+  return [...idsTitolari, ...idsPanchina];
+}
+
+// Renderizza il campo in base al modulo
+function renderCampo() {
+  const modulo = selectModulo.value;
+  const config = moduli[modulo];
+
+  // Salva i valori attuali delle select se esistono, per non perderli durante switch (se possibile)
+  const valoriAttuali = {};
+  const inputs = divCampo.querySelectorAll("select");
+  inputs.forEach(el => valoriAttuali[el.id] = el.value);
+
+  divCampo.innerHTML = ""; // Clear
+
+  config.forEach((riga) => {
+    const divRiga = document.createElement("div");
+    divRiga.className = "linea";
+    riga.forEach((slot) => {
+      const divPos = document.createElement("div");
+      divPos.className = "posizione";
+
+      const select = document.createElement("select");
+      select.id = slot.id;
+      if (valoriAttuali[slot.id]) select.value = valoriAttuali[slot.id];
+
+      const label = document.createElement("label");
+      label.textContent = slot.label;
+
+      divPos.appendChild(select);
+      divPos.appendChild(label);
+      divRiga.appendChild(divPos);
+    });
+    divCampo.appendChild(divRiga);
+  });
+
+  popolaSelect(); // Ripopola le option delle nuove select create
+}
+
 function aggiornaOpzioniSelect() {
+  const ids = getIdsCorrenti();
   const selezionati = new Set();
   ids.forEach((id) => {
-    const val = document.getElementById(id).value;
-    if (val) selezionati.add(val);
+    const el = document.getElementById(id);
+    if (el && el.value) selezionati.add(el.value);
   });
 
   ids.forEach((id) => {
     const select = document.getElementById(id);
+    if (!select) return;
+
     const valoreCorrente = select.value;
     select.innerHTML = "";
 
@@ -57,32 +122,49 @@ function aggiornaOpzioniSelect() {
 }
 
 function popolaSelect() {
+  const ids = getIdsCorrenti();
   ids.forEach((id) => {
     const select = document.getElementById(id);
-    select.addEventListener("change", aggiornaOpzioniSelect);
+    if (select) {
+      select.removeEventListener("change", aggiornaOpzioniSelect);
+      select.addEventListener("change", aggiornaOpzioniSelect);
+    }
   });
   aggiornaOpzioniSelect();
 }
 
 function getFormazioneCorrente() {
-  const titolari = ids
-    .slice(0, 7)
-    .map((id) => document.getElementById(id).value)
-    .filter((v) => v);
-  const panchina = ids
-    .slice(7)
-    .map((id) => document.getElementById(id).value)
-    .filter((v) => v);
+  const ids = getIdsCorrenti();
+  // Troviamo il "punto di stacco" tra titolari e panchina.
+  // I titolari sono definiti nel modulo.
+  const modulo = selectModulo.value;
+  const numTitolari = moduli[modulo].flat().length;
+
+  // Slice safe check
+  const titolari = [];
+  const panchina = [];
+
+  // Titolari
+  for (let i = 0; i < numTitolari; i++) {
+    const el = document.getElementById(ids[i]);
+    if (el && el.value) titolari.push(el.value);
+  }
+
+  // Panchina
+  for (let i = numTitolari; i < ids.length; i++) {
+    const el = document.getElementById(ids[i]);
+    if (el && el.value) panchina.push(el.value);
+  }
+
   return { titolari, panchina };
 }
 
 function creaSelectVoto(nome, valorePreselezionato = "") {
   let options = '<option value="">-</option>';
-  options += `<option value="S.V." ${
-    valorePreselezionato === "S.V." ? "selected" : ""
-  }>S.V.</option>`;
+  options += `<option value="S.V." ${valorePreselezionato === "S.V." ? "selected" : ""
+    }>S.V.</option>`;
   for (let v = 1.0; v <= 10.0; v += 0.25) {
-    const voto = Number(v.toFixed(2)).toString(); // ← converte 6.50 in "6.5"
+    const voto = Number(v.toFixed(2)).toString();
     const selected = String(valorePreselezionato) === voto ? "selected" : "";
     options += `<option value="${voto}" ${selected}>${voto}</option>`;
   }
@@ -127,6 +209,9 @@ function mostraStatistichePartite(stats) {
     table.appendChild(tr);
   }
 
+  const existing = document.querySelector(".statistiche-container");
+  if (existing) existing.remove();
+
   div.appendChild(table);
   const target = document.getElementById("salvaFormazione");
   target.parentNode.insertBefore(div, target);
@@ -138,7 +223,7 @@ async function calcolaStatistichePartite() {
   const stats = {};
 
   Object.values(partite || {}).forEach((partita) => {
-    if (!partita.giocatori) return; // ⛔ Salta partite senza pagella
+    if (!partita.giocatori) return;
 
     (partita.titolari || []).forEach((nome) => {
       if (!stats[nome]) stats[nome] = { titolare: 0, minuti: 0 };
@@ -159,7 +244,6 @@ function mostraCampiVoto(titolari = [], panchina = [], voti = {}) {
   const tutti = [...new Set([...titolari, ...panchina])];
   votiContainer.innerHTML = "";
 
-  // Box per la squadra
   const squadraBox = document.createElement("div");
   squadraBox.className = "giocatore-box";
   squadraBox.innerHTML = `
@@ -167,13 +251,11 @@ function mostraCampiVoto(titolari = [], panchina = [], voti = {}) {
       <span style="width: 90px; text-align: left; font-weight: bold;">Squadra</span>
       ${creaSelectVoto("Squadra", voti["Squadra"]?.voto)}
     </div>
-    <textarea placeholder="Osservazioni alla squadra" data-nome="squadra" class="input-commento">${
-      voti["Squadra"]?.commento || ""
+    <textarea placeholder="Osservazioni alla squadra" data-nome="squadra" class="input-commento">${voti["Squadra"]?.commento || ""
     }</textarea>
   `;
   votiContainer.appendChild(squadraBox);
 
-  // Box per ogni giocatore
   giocatori.forEach((nome) => {
     if (!tutti.includes(nome)) return;
     const div = document.createElement("div");
@@ -181,14 +263,13 @@ function mostraCampiVoto(titolari = [], panchina = [], voti = {}) {
     div.innerHTML = `
       <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
   <span style="width: 90px; text-align: left; font-weight: bold;">${abbreviaNomeFormazione(
-    nome
-  )}</span>
+      nome
+    )}</span>
   ${creaSelectVoto(nome, voti[nome]?.voto)}
   ${creaInputMinuti(nome, voti[nome]?.minuti || "")}
 </div>
-      <textarea placeholder="Commento" data-nome="${nome}" class="input-commento">${
-      voti[nome]?.commento || ""
-    }</textarea>
+      <textarea placeholder="Commento" data-nome="${nome}" class="input-commento">${voti[nome]?.commento || ""
+      }</textarea>
     `;
     votiContainer.appendChild(div);
   });
@@ -200,26 +281,45 @@ async function caricaFormazione(data) {
 
   const titolari = partita?.titolari || [];
   const panchina = partita?.panchina || [];
+  const moduloSalvato = partita?.modulo || "3-2-1";
 
-  const mappaID = ["portiere", "dif1", "dif2", "dif3", "cen1", "cen2", "att"];
-  mappaID.forEach((id, i) => {
-    document.getElementById(id).value = titolari[i] || "";
-  });
-  ids.slice(7).forEach((id, i) => {
-    document.getElementById(id).value = panchina[i] || "";
+  selectModulo.value = moduloSalvato;
+  renderCampo();
+
+  const ids = getIdsCorrenti();
+  const modulo = selectModulo.value;
+  const numTitolari = moduli[modulo].flat().length;
+
+  for (let i = 0; i < numTitolari; i++) {
+    if (titolari[i] && ids[i]) {
+      const el = document.getElementById(ids[i]);
+      if (el) el.value = titolari[i];
+    }
+  }
+
+  const idsPanchina = ids.slice(numTitolari);
+  idsPanchina.forEach((id, i) => {
+    if (panchina[i]) {
+      const el = document.getElementById(id);
+      if (el) el.value = panchina[i];
+    }
   });
 
   mostraCampiVoto(titolari, panchina, partita?.giocatori || {});
+  aggiornaOpzioniSelect();
 }
 
 async function salvaFormazione() {
   const data = dataInput.value;
   if (!data) return mostraAvviso("Inserisci una data", "error");
   const { titolari, panchina } = getFormazioneCorrente();
+  const modulo = selectModulo.value;
+
   await firebaseDB.ref(`partite/${data}`).update({
     data,
     timestamp: new Date().toISOString(),
     tipo: "partita",
+    modulo,
     titolari,
     panchina,
   });
@@ -295,9 +395,24 @@ document
   .getElementById("salvaFormazione")
   .addEventListener("click", salvaFormazione);
 document.getElementById("salvaPagella").addEventListener("click", salvaPagella);
+
 dataInput.addEventListener("change", () => {
   if (dataInput.value) caricaFormazione(dataInput.value);
 });
 
-popolaSelect();
+// Immediate trigger attempt for mobile (checking length)
+dataInput.addEventListener("input", () => {
+  if (dataInput.value && dataInput.value.length === 10) {
+    caricaFormazione(dataInput.value);
+  }
+});
+
+selectModulo.addEventListener("change", () => {
+  renderCampo();
+  mostraAvviso("Modulo cambiato. Risistema i giocatori!", "warning");
+});
+
+// Init
+renderCampo();
 calcolaStatistichePartite();
+popolaSelect();

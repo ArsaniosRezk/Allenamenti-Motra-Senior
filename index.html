@@ -1,57 +1,67 @@
 <!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Storico Allenamenti</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="colors.css" />
 
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    />
-  </head>
-  <body>
-    <div id="intestazione">
-      <h2 id="titolo">PRESTAZIONI <br />MOTRA SENIOR</h2>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Storico Allenamenti</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="colors.css" />
 
-      <div class="navigation-div">
-        <a href="allenamenti.html" class="link">Allenamento</a>
-        <a href="partite.html" class="link">Partita</a>
-      </div>
-    </div>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
 
-    <div id="statisticheAllenamentiContainer"></div>
-    <div id="statistichePartiteContainer"></div>
+<body>
+  <div id="intestazione">
+    <h2 id="titolo">PRESTAZIONI <br />MOTRA SENIOR</h2>
+  </div>
 
-    <hr />
-    <div id="storicoContainer"></div>
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item active">
+      <i class="fas fa-chart-line"></i>
+      <span>Stats</span>
+    </a>
+    <a href="partite.html" class="nav-item">
+      <i class="fas fa-futbol"></i>
+      <span>Partita</span>
+    </a>
+    <a href="allenamenti.html" class="nav-item">
+      <i class="fas fa-running"></i>
+      <span>Allen</span>
+    </a>
+  </nav>
 
-    <!-- Firebase compat -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <div id="statisticheAllenamentiContainer"></div>
+  <div id="statistichePartiteContainer"></div>
 
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
-        authDomain: "allenamenti-motra-senior.firebaseapp.com",
-        projectId: "allenamenti-motra-senior",
-        storageBucket: "allenamenti-motra-senior.firebasestorage.app",
-        messagingSenderId: "816511360311",
-        appId: "1:816511360311:web:d50530672d926d48f0ceb2",
-        measurementId: "G-M8SB7S7DQ7",
-        databaseURL:
-          "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
-      };
+  <hr />
+  <div id="storicoContainer"></div>
 
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
-      window.firebaseDB = db;
-    </script>
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
+      authDomain: "allenamenti-motra-senior.firebaseapp.com",
+      projectId: "allenamenti-motra-senior",
+      storageBucket: "allenamenti-motra-senior.firebasestorage.app",
+      messagingSenderId: "816511360311",
+      appId: "1:816511360311:web:d50530672d926d48f0ceb2",
+      measurementId: "G-M8SB7S7DQ7",
+      databaseURL:
+        "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
+    };
 
-    <script type="module" src="index.js"></script>
-  </body>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    window.firebaseDB = db;
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script type="module" src="index.js"></script>
+</body>
+
 </html>
