@@ -4,42 +4,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Storico Allenamenti</title>
+  <title>Statistiche</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="colors.css" />
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 
 <body>
+  <!-- Intestazione Comune -->
   <div id="intestazione">
-    <h2 id="titolo">PRESTAZIONI <br />MOTRA SENIOR</h2>
+    <h2 id="titolo-pagina">STATISTICHE</h2>
   </div>
 
+  <!-- Pagine SPA -->
+
+  <!-- Pagina 1: Statistiche (Default) -->
+  <div id="page-stats" class="page-container">
+    <div id="statisticheAllenamentiContainer"></div>
+    <div id="statistichePartiteContainer"></div>
+    <hr />
+    <div id="storicoContainer"></div>
+  </div>
+
+  <!-- Pagina 2: Partita -->
+  <div id="page-partita" class="page-container hidden">
+    <div class="flex-control-row">
+      <label for="dataPartita">Data partita</label>
+      <input type="date" id="dataPartita" name="dataPartita" required />
+    </div>
+
+    <div class="flex-control-row">
+      <label for="moduloFormazione">Modulo</label>
+      <select id="moduloFormazione">
+        <option value="3-2-1">3-2-1</option>
+        <option value="2-3-1">2-3-1</option>
+      </select>
+    </div>
+
+    <div id="campo"></div>
+
+    <h3 id="panchina-title">Panchina</h3>
+    <div id="div-panchina">
+      <div class="riga-uno">
+        <select id="p1"></select>
+        <select id="p2"></select>
+        <select id="p3"></select>
+        <select id="p4"></select>
+        <select id="p5"></select>
+      </div>
+      <div class="riga-due">
+        <select id="p6"></select>
+        <select id="p7"></select>
+        <select id="p8"></select>
+        <select id="p9"></select>
+        <select id="p10"></select>
+      </div>
+    </div>
+
+    <button id="salvaFormazione">Salva Formazione</button>
+
+    <div id="votiContainer"></div>
+    <button id="salvaPagella">Salva Pagella</button>
+  </div>
+
+  <!-- Pagina 3: Allenamento -->
+  <div id="page-allenamento" class="page-container hidden">
+    <div id="info-pagella">
+      <div class="flex-control-row" style="width: 100%;">
+        <label for="dataAllenamento">Data Allenamento</label>
+        <input type="date" id="dataAllenamento" name="dataAllenamento" required />
+      </div>
+    </div>
+
+    <form id="allenamentoForm">
+      <div id="lista-giocatori"></div>
+      <button type="submit">Salva Pagella Allenamento</button>
+    </form>
+  </div>
+
+  <!-- Bottom Navbar -->
   <nav class="bottom-nav">
-    <a href="index.html" class="nav-item active">
+    <a href="#" class="nav-item active" data-target="page-stats" data-title="STATISTICHE">
       <i class="fas fa-chart-line"></i>
       <span>Stats</span>
     </a>
-    <a href="partite.html" class="nav-item">
+    <a href="#" class="nav-item" data-target="page-partita" data-title="PARTITA">
       <i class="fas fa-futbol"></i>
       <span>Partita</span>
     </a>
-    <a href="allenamenti.html" class="nav-item">
+    <a href="#" class="nav-item" data-target="page-allenamento" data-title="ALLENAMENTO">
       <i class="fas fa-running"></i>
       <span>Allen</span>
     </a>
   </nav>
 
-  <div id="statisticheAllenamentiContainer"></div>
-  <div id="statistichePartiteContainer"></div>
+  <div id="avviso" style="display:none;"></div>
 
-  <hr />
-  <div id="storicoContainer"></div>
+  <style>
+    .hidden {
+      display: none !important;
+    }
+
+    .page-container {
+      padding-bottom: 20px;
+    }
+  </style>
 
   <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -59,9 +133,36 @@
     window.firebaseDB = db;
   </script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+  <!-- Main Logic -->
+  <!-- Note: type="module" allows us to import our existing modules. 
+         We might need to refactor them slightly to not conflict or run immediately if they assume specific pages.
+    -->
   <script type="module" src="index.js"></script>
+  <script type="module" src="partita_spa.js"></script>
+  <script type="module" src="allenamenti_spa.js"></script>
+
+  <script>
+    // Simple Router Logic directly here or imported
+    document.querySelectorAll('.nav-item').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Remove active class
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        // Add active class
+        link.classList.add('active');
+
+        // Hide all pages
+        document.querySelectorAll('.page-container').forEach(p => p.classList.add('hidden'));
+
+        // Show target page
+        const targetId = link.getAttribute('data-target');
+        document.getElementById(targetId).classList.remove('hidden');
+
+        // Update Title
+        document.getElementById('titolo-pagina').textContent = link.getAttribute('data-title');
+      });
+    });
+  </script>
 </body>
 
 </html>

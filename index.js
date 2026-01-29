@@ -45,20 +45,39 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   const header = document.createElement("div");
   header.className = "evento-header";
 
-  const label = document.createElement("span");
-  label.textContent = `${tipoCapitalizzato} ${data}`;
+  /* Modern Event Header */
+  const icona = tipo === "partita" ? `<i class="fas fa-futbol"></i>` : `<i class="fas fa-running"></i>`;
+  const coloreIcona = tipo === "partita" ? "#3b82f6" : "#10b981"; // Blue vs Green accent
+
+  const headerLeft = document.createElement("div");
+  headerLeft.className = "evento-left";
+  headerLeft.innerHTML = `
+    <div class="evento-icon-box" style="background-color: ${coloreIcona}20; color: ${coloreIcona};">
+      ${icona}
+    </div>
+    <div class="evento-info">
+      <span class="evento-tipo">${tipoCapitalizzato}</span>
+      <span class="evento-data">${data}</span>
+    </div>
+  `;
+
+  const headerRight = document.createElement("div");
+  headerRight.className = "evento-right";
 
   const toggleIcon = document.createElement("span");
   toggleIcon.className = "toggle-icon";
-  toggleIcon.textContent = "+";
+  toggleIcon.innerHTML = `<i class="fas fa-chevron-down"></i>`;
 
-  const leftGroup = document.createElement("div");
-  leftGroup.className = "evento-left";
-  leftGroup.appendChild(label);
-  leftGroup.appendChild(toggleIcon);
+  // We append leftGroup (renaming it to avoid conflict if I didn't replace everything)
+  // Actually, I will replace the existing leftGroup logic.
 
+  header.appendChild(headerLeft);
+  header.appendChild(headerRight);
+  headerRight.appendChild(toggleIcon);
+
+  /* Buttons Logic Moved Here */
   const deleteBtn = document.createElement("button");
-  deleteBtn.className = "btn-elimina";
+  deleteBtn.className = "btn-elimina-icon";
   deleteBtn.innerHTML = `<i class="fas fa-trash"></i>`;
   deleteBtn.title = "Elimina";
   deleteBtn.addEventListener("click", (e) => {
@@ -80,7 +99,7 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   });
 
   const copiaBtn = document.createElement("button");
-  copiaBtn.className = "btn-copia";
+  copiaBtn.className = "btn-copia-icon";
   copiaBtn.innerHTML = `<i class="fas fa-share-nodes"></i>`;
   copiaBtn.title = "Copia evento come immagine";
   copiaBtn.addEventListener("click", (e) => {
@@ -94,31 +113,24 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     });
   });
 
+  const headerActions = document.createElement("div");
+  headerActions.className = "header-actions";
+  headerActions.appendChild(copiaBtn);
+  headerActions.appendChild(deleteBtn);
+
+  headerRight.appendChild(headerActions);
+  headerRight.appendChild(toggleIcon);
+
+  header.appendChild(headerLeft);
+  header.appendChild(headerRight);
+
   const dettaglio = document.createElement("div");
   dettaglio.className = "evento-dettaglio nascosto";
 
   const table = document.createElement("table");
   table.className = "mini-tabella";
 
-  const rigaAzioni = document.createElement("tr");
-  rigaAzioni.className = "riga-azioni";
-  const numeroRighe = table.querySelectorAll("tr").length;
-  rigaAzioni.className =
-    numeroRighe % 2 === 0
-      ? "riga-pari riga-azioni"
-      : "riga-dispari riga-azioni";
-
-  const tdAzioni = document.createElement("td");
-  tdAzioni.colSpan = 2;
-
-  const actionsWrapper = document.createElement("div");
-  actionsWrapper.className = "azioni-wrapper";
-  actionsWrapper.appendChild(copiaBtn);
-  actionsWrapper.appendChild(deleteBtn);
-
-  tdAzioni.appendChild(actionsWrapper);
-  rigaAzioni.appendChild(tdAzioni);
-  table.appendChild(rigaAzioni);
+  // Removed old action row logic from here
 
   giocatori.forEach((nome, index) => {
     if (tipo === "allenamento" && nome.trim().toLowerCase() === "squadra")
@@ -188,11 +200,12 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
 
   dettaglio.appendChild(table);
 
-  header.appendChild(leftGroup);
+  // header.appendChild(leftGroup); // Removed old logic
   header.addEventListener("click", () => {
     const aperto = !dettaglio.classList.contains("nascosto");
     dettaglio.classList.toggle("nascosto");
-    toggleIcon.textContent = aperto ? "+" : "−";
+    container.classList.toggle("expanded"); // Add expanded class for styling
+    toggleIcon.style.transform = aperto ? "rotate(0deg)" : "rotate(180deg)";
   });
 
   container.appendChild(header);
@@ -202,13 +215,13 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
 
 function creaTabellaStatistiche(statsObj, titolo) {
   const idTabella =
-    titolo === "Statistiche Allenamenti"
+    titolo === "Allenamenti"
       ? "tabella-allenamenti"
       : "tabella-partite";
 
   let ordinati = Object.entries(statsObj).map(([nome, dati]) => {
     let mediaBase;
-    if (titolo === "Statistiche Partite") {
+    if (titolo === "Partite") {
       const conteggioMedia = dati._conteggioMedia || 0;
       mediaBase = conteggioMedia > 0 ? dati.sommaVoti / conteggioMedia : 0;
     } else {
@@ -272,7 +285,7 @@ function creaTabellaStatistiche(statsObj, titolo) {
           </tr>`;
   });
 
-  html += `</tbody></table><br/>`;
+  html += `</tbody></table></div>`;
   return html;
 }
 

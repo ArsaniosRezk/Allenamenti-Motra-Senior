@@ -48,22 +48,19 @@
   --avviso-success-bg: var(--success);
   --avviso-error-bg: var(--error);
 
-  /* Media Voti Colors */
-  --media-bassa: var(--error);
-  --media-media: var(--warning);
-  --media-buona: var(--success);
+  /* Media Voti Colors - Muted for Premium Dark Theme */
+  --media-bassa: #ef444aad;
+  /* Muted Red */
+  --media-media: #f59e0bb3;
+  /* Muted Amber */
+  --media-buona: #10b981b3;
+  /* Muted Emerald */
   --media-alta: #059669;
-  /* Emerald 600 */
+  /* Emerald 600 (already strict) */
+
 
   /* Button specific */
   --btn-elimina-bg: rgba(239, 68, 68, 0.1);
   --btn-elimina-border: var(--error);
   --btn-elimina-text: var(--error);
-}
-
-:root {
-  --media-bassa: #ec4d52;
-  --media-media: #ccb94b;
-  --media-buona: #2cb647;
-  --media-alta: #4e982e;
 }
