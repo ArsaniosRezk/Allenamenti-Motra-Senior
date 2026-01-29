@@ -3,6 +3,16 @@ import { giocatori as listaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
 import { mostraAvviso, condividiImmagine } from "./utils.js";
 
+// Register Service Worker for PWA
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then(() => console.log("Service Worker registrato!"))
+      .catch((err) => console.log("Service Worker fallito:", err));
+  });
+}
+
 const giocatori = [...listaGiocatori, "Squadra"];
 
 const storicoDiv = document.getElementById("storicoContainer");
