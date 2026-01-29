@@ -105,7 +105,8 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   copiaBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     container.classList.add("screenshot-mode");
-    html2canvas(container).then((canvas) => {
+    // Use hex for dark background to avoid white corners issues if transparency fails
+    html2canvas(container, { backgroundColor: null }).then((canvas) => {
       container.classList.remove("screenshot-mode");
       canvas.toBlob((blob) => {
         condividiImmagine(blob, `evento_${all.id}.png`);
@@ -343,7 +344,8 @@ Promise.all([
 
       if (targetElement) {
         targetElement.classList.add("screenshot-mode");
-        html2canvas(targetElement).then((canvas) => {
+        // Use hex for dark background
+        html2canvas(targetElement, { backgroundColor: null }).then((canvas) => {
           targetElement.classList.remove("screenshot-mode");
           canvas.toBlob((blob) => {
             condividiImmagine(blob, "statistiche.png");

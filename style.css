@@ -69,7 +69,7 @@ body {
 .giocatore-box,
 .statistiche-blocco {
   background-color: var(--sfondo-card);
-  border-radius: 12px;
+  border-radius: 5px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--secondary);
   margin-bottom: 16px;
@@ -546,6 +546,15 @@ ul {
 }
 
 /* Screenshot Mode Overrides */
+.screenshot-mode.evento-container,
+.screenshot-mode.statistiche-blocco {
+  background-color: var(--sfondo-card) !important;
+  /* Ensure dark bg */
+  border-radius: 0 !important;
+  /* Remove corners to avoid white artifacts */
+  border: none !important;
+}
+
 .screenshot-mode .evento-right {
   display: none !important;
 }
