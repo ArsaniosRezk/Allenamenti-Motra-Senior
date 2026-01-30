@@ -69,7 +69,7 @@ body {
 .giocatore-box,
 .statistiche-blocco {
   background-color: var(--sfondo-card);
-  border-radius: 5px;
+  border-radius: 10px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--secondary);
   margin-bottom: 16px;
@@ -414,19 +414,19 @@ table tbody tr:nth-child(odd) td {
 
 /* Angoli arrotondati visibili anche in Chrome */
 table thead tr th:first-child {
-  border-top-left-radius: 5px;
+  border-top-left-radius: 10px;
 }
 
 table thead tr th:last-child {
-  border-top-right-radius: 5px;
+  border-top-right-radius: 10px;
 }
 
 table tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 5px;
+  border-bottom-left-radius: 10px;
 }
 
 table tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 5px;
+  border-bottom-right-radius: 10px;
 }
 
 ul {
@@ -517,9 +517,15 @@ ul {
   transition: opacity 0.3s;
 }
 
-.evento-container.expanded .header-actions {
+.evento-container.expanded .header-actions,
+.evento-container.pending-event .header-actions {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Hide Share button for Pending Events */
+.evento-container.pending-event .btn-copia-icon {
+  display: none;
 }
 
 .btn-elimina-icon,
@@ -787,6 +793,39 @@ ul {
   background-repeat: no-repeat;
   justify-content: space-between;
   padding-top: 20%;
+  position: relative;
+  /* For absolute buttons */
+}
+
+.campo-action-btn {
+  position: absolute;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(30, 41, 59, 0.9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  font-size: 1.1rem;
+}
+
+.btn-pos-left {
+  left: 10px;
+}
+
+.btn-pos-right {
+  right: 10px;
+}
+
+/* Hide on screenshot */
+.screenshot-mode .campo-action-btn {
+  display: none !important;
 }
 
 .linea {
@@ -1314,9 +1353,6 @@ h3 {
   cursor: pointer;
 }
 
-.pc-footer {
-  margin-top: 0px;
-}
 
 .pc-comment-input {
   width: 100%;
@@ -1443,10 +1479,85 @@ input:checked+.pc-slider-switch:before {
   min-width: 60px;
   max-width: 65px;
   margin: 0 auto;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
 }
 
 .screenshot-mode #campo select {
   display: none !important;
-  /* Double check hiding */
+}
+
+/* Fix Slider Click Jump */
+.pc-slider {
+  pointer-events: none;
+  /* Disable clicking on track */
+}
+
+.pc-slider::-webkit-slider-thumb {
+  pointer-events: auto;
+  /* Enable dragging thumb */
+  cursor: grab;
+}
+
+.pc-slider::-moz-range-thumb {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* Scroll Sentinel */
+/* Page Container - Extra padding for floating elements */
+/* Page Container - Extra padding for floating elements */
+/* Only apply to pages with fixed button */
+#page-partita,
+#page-allenamento {
+  padding-bottom: 70px !important;
+  /* Needed for Fixed Button space */
+}
+
+/* Floating Pill Button - "The Clean Solution" */
+/* Sticky Pill Button - The "Perfect" Solution */
+.floating-pill-btn {
+  position: fixed;
+  /* "Sospeso" (Suspended) */
+  bottom: 95px;
+  /* Above Navbar (~70-80px) */
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  /* Reset margin */
+  width: 85%;
+  max-width: 400px;
+  height: 50px;
+  border-radius: 20px;
+  background-color: #3564b0;
+  color: white;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.floating-pill-btn:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.floating-pill-btn i {
+  font-size: 1.2rem;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

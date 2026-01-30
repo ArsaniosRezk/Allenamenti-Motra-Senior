@@ -1,4 +1,4 @@
-const CACHE_NAME = "motra-v4";
+const CACHE_NAME = "motra-v26";
 const ASSETS_TO_CACHE = [
     "./",
     "./index.html",
@@ -14,7 +14,10 @@ const ASSETS_TO_CACHE = [
 ];
 
 // Install Event: Cache assets
+// Install Event: Cache assets
 self.addEventListener("install", (event) => {
+    // Force waiting service worker to become active
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log("[SW] Caching assets");
@@ -25,17 +28,21 @@ self.addEventListener("install", (event) => {
 
 // Activate Event: Cleanup old caches
 self.addEventListener("activate", (event) => {
+    // Claim clients immediately
     event.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(
-                keyList.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        console.log("[SW] Removing old cache", key);
-                        return caches.delete(key);
-                    }
-                })
-            );
-        })
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then((keyList) => {
+                return Promise.all(
+                    keyList.map((key) => {
+                        if (key !== CACHE_NAME) {
+                            console.log("[SW] Removing old cache", key);
+                            return caches.delete(key);
+                        }
+                    })
+                );
+            })
+        ])
     );
 });
 

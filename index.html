@@ -46,7 +46,14 @@
       </select>
     </div>
 
-    <div id="campo"></div>
+    <div id="campo">
+      <!-- Buttons injected here are persistent or can be re-rendered. 
+           Since renderCampo clears HTML, we should likely move these OUTSIDE if we want them persistent 
+           OR re-inject them in JS.
+           Wait, `renderCampo()` in `partita_spa.js` likely clears innerHTML of #campo.
+           If so, putting them here in HTML is useless as they will be wiped on load.
+           Checking `partita_spa.js`. -->
+    </div>
 
     <h3 id="panchina-title">Panchina</h3>
     <div id="div-panchina">
@@ -66,21 +73,14 @@
       </div>
     </div>
 
-    <div class="btn-salva-container" style="display: flex; gap: 10px; margin-top: 10px;">
-      <button id="salvaFormazione" style="flex: 1;">Salva Formazione</button>
-      <button id="shareFormazione" class="btn-standard" style="width: auto; padding: 0 15px;">
-        <i class="fas fa-share-nodes"></i>
-      </button>
-    </div>
+    <!-- Removed .btn-salva-container -->
 
     <div id="votiContainer"></div>
-    <button id="salvaPagella">Salva Pagella</button>
-    <!-- Hidden original buttons to keep JS logic intact for now, or just style them? 
-         User said "make keys accessible without scrolling to bottom". 
-         I will keep the IDs on the FABs or move the IDs. 
-         Wait, replacing buttons implies updating JS listeners if I change their nature significantly.
-         I'll stick to standard button restructuring in a moment. 
-         For now, just labels and page structure. -->
+
+    <!-- Floating Pill Button (Always Fixed) -->
+    <button id="salvaPagella" class="floating-pill-btn">
+      <i class="fas fa-save"></i> <span id="salvaPagellaText">Salva Formazione</span>
+    </button>
   </div>
 
   <!-- Pagina 4: Allenamento -->
@@ -95,7 +95,9 @@
     <form id="allenamentoForm">
       <div id="lista-giocatori"></div>
 
-      <button type="submit">Salva Pagella</button>
+      <button type="submit" id="salvaAllenamento" class="floating-pill-btn">
+        <i class="fas fa-save"></i> <span>Salva Pagella</span>
+      </button>
     </form>
   </div>
 

@@ -22,7 +22,6 @@ export function condividiImmagine(blob, nomeFile) {
             .share({
                 files: [file],
                 title: "Condividi Immagine",
-                text: "Ecco l'immagine!",
             })
             .catch((err) => console.error("Errore condivisione:", err));
     } else {

@@ -85,6 +85,19 @@ function renderCampo() {
         divCampo.appendChild(divRiga);
     });
 
+    // Injected Action Buttons
+    const btnShare = document.createElement("button");
+    btnShare.className = "campo-action-btn btn-pos-left";
+    btnShare.innerHTML = '<i class="fas fa-share-nodes"></i>';
+    btnShare.id = "actionShare"; // For delegation or selection
+    divCampo.appendChild(btnShare);
+
+    const btnSave = document.createElement("button");
+    btnSave.className = "campo-action-btn btn-pos-right";
+    btnSave.innerHTML = '<i class="fas fa-save"></i>';
+    btnSave.id = "actionSave";
+    divCampo.appendChild(btnSave);
+
     popolaSelect();
 }
 
@@ -270,25 +283,28 @@ document.addEventListener('change', (e) => {
         const safeNome = nome.replace(/\s+/g, '_');
 
         const card = document.getElementById(`card-${safeNome}`);
-        const body = document.getElementById(`body-${safeNome}`);
-        const footer = document.getElementById(`footer-${safeNome}`);
+        const inputs = card.querySelectorAll('input, textarea'); // Select all inputs in this card
 
         if (isChecked) {
-            // S.V. On -> Collapse
-            if (body) body.style.display = "none";
-            if (footer) footer.style.display = "none";
+            // S.V. On -> Disable & Collapse
+            inputs.forEach(input => {
+                if (!input.classList.contains('cb-sv')) input.disabled = true;
+            });
+            card.querySelector('.pc-body').style.display = 'none';
+            card.querySelector('.pc-footer').style.display = 'none';
             card.classList.add('disabled');
         } else {
-            // S.V. Off -> Expand
-            if (body) body.style.display = "flex";
-            if (footer) footer.style.display = "block";
+            // S.V. Off -> Enable & Expand
+            inputs.forEach(input => {
+                input.disabled = false;
+            });
+            card.querySelector('.pc-body').style.display = ''; // Revert to CSS (flex)
+            card.querySelector('.pc-footer').style.display = 'block';
             card.classList.remove('disabled');
-
-            // Refresh values
-            const sliderVoto = card.querySelector('.input-voto-slider');
-            const spanVoto = document.getElementById(`valore-${safeNome}`);
-            if (spanVoto && sliderVoto) spanVoto.textContent = parseFloat(sliderVoto.value).toFixed(2);
         }
+        const sliderVoto = card.querySelector('.input-voto-slider');
+        const spanVoto = document.getElementById(`valore-${safeNome}`);
+        if (spanVoto && sliderVoto) spanVoto.textContent = parseFloat(sliderVoto.value).toFixed(2);
     }
 });
 
@@ -346,12 +362,15 @@ function mostraStatistichePartite(stats) {
 
     div.appendChild(table);
     div.appendChild(table);
-    // Fix: Insert before the CONTAINER of the button, not the button itself (which is inside a flex row now)
-    const btnContainer = document.querySelector('.btn-salva-container');
-    if (btnContainer) {
-        btnContainer.parentNode.insertBefore(div, btnContainer);
-    } else if (salvaFormazioneBtn) {
-        salvaFormazioneBtn.parentNode.insertBefore(div, salvaFormazioneBtn);
+    div.appendChild(table);
+
+    // Fix: Insert before #votiContainer since buttons are now absolute or removed
+    if (votiContainer) {
+        votiContainer.parentNode.insertBefore(div, votiContainer);
+    } else {
+        // Fallback: append to #page-partita if possible, or after panchina
+        const panchina = document.getElementById("div-panchina");
+        if (panchina) panchina.parentNode.appendChild(div);
     }
 }
 
@@ -405,7 +424,17 @@ async function caricaFormazione(data) {
         }
     });
 
-    mostraCampiVoto(titolari, panchina, partita?.giocatori || {});
+    // Check if match exists and has players
+    if (partita && partita.titolari && partita.titolari.length > 0) {
+        mostraCampiVoto(titolari, panchina, partita?.giocatori || {});
+    } else {
+        // If no match data, ensure votes are cleared (and Squadra box removed)
+        const container = document.getElementById("votiContainer");
+        if (container) container.innerHTML = "";
+    }
+
+    // Update button state (Formation vs Pagella)
+    if (typeof aggiornaStatoBottone === 'function') aggiornaStatoBottone();
     aggiornaOpzioniSelect();
 }
 
@@ -474,52 +503,59 @@ async function salvaPagella() {
     document.dispatchEvent(new Event("data-update"));
 }
 
-if (salvaFormazioneBtn) salvaFormazioneBtn.addEventListener("click", salvaFormazione);
-const shareFormazioneBtn = document.getElementById("shareFormazione");
-if (shareFormazioneBtn) {
-    shareFormazioneBtn.addEventListener("click", () => {
-        const campo = document.getElementById("campo");
-        campo.classList.add("screenshot-mode");
+// Delegated listener for Campo Actions (Share & Save)
+if (divCampo) {
+    divCampo.addEventListener("click", (e) => {
+        const btnShare = e.target.closest("#actionShare");
+        const btnSave = e.target.closest("#actionSave");
 
-        // 1. Swap selects with text DIVs for perfect rendering
-        const selects = campo.querySelectorAll("select");
-        const restoreList = [];
+        if (btnSave) {
+            salvaFormazione();
+        } else if (btnShare) {
+            const campo = document.getElementById("campo");
+            campo.classList.add("screenshot-mode");
 
-        selects.forEach(sel => {
-            const div = document.createElement("div");
-            div.className = "screenshot-replacement";
-            // Get selected text or placeholder
-            const text = sel.options[sel.selectedIndex]?.text || "-";
-            div.textContent = text;
+            // 1. Swap selects with text DIVs for perfect rendering
+            const selects = campo.querySelectorAll("select");
+            const restoreList = [];
 
-            // Insert div, hide select
-            sel.parentNode.insertBefore(div, sel);
-            sel.style.display = "none";
-            restoreList.push({ select: sel, div: div });
-        });
+            selects.forEach(sel => {
+                const div = document.createElement("div");
+                div.className = "screenshot-replacement";
+                // Get selected text or placeholder
+                const text = sel.options[sel.selectedIndex]?.text || "-";
+                div.textContent = text;
 
-        // Use a slight timeout to ensure styles apply if needed, though usually redundant.
-        // We force a specific background color for the canvas to look good.
-        html2canvas(campo, {
-            scale: 2, // High res
-            backgroundColor: null, // Transparent to let CSS background show through
-            logging: false,
-            useCORS: true // Ensure external images (if any) are loaded
-        }).then((canvas) => {
-            campo.classList.remove("screenshot-mode");
-
-            // 2. Restore selects
-            restoreList.forEach(item => {
-                item.div.remove();
-                item.select.style.display = "";
+                // Insert div, hide select
+                sel.parentNode.insertBefore(div, sel);
+                sel.style.display = "none";
+                restoreList.push({ select: sel, div: div });
             });
 
-            canvas.toBlob((blob) => {
-                condividiImmagine(blob, `formazione_${new Date().toISOString().slice(0, 10)}.png`);
+            html2canvas(campo, {
+                scale: 2,
+                backgroundColor: null,
+                logging: false,
+                useCORS: true
+            }).then((canvas) => {
+                campo.classList.remove("screenshot-mode");
+
+                // 2. Restore selects
+                restoreList.forEach(item => {
+                    item.div.remove();
+                    item.select.style.display = "";
+                });
+
+                canvas.toBlob((blob) => {
+                    condividiImmagine(blob, `formazione_${new Date().toISOString().slice(0, 10)}.png`);
+                });
             });
-        });
+        }
     });
 }
+
+// if (salvaFormazioneBtn) salvaFormazioneBtn.addEventListener("click", salvaFormazione); // Removed
+if (salvaPagellaBtn) salvaPagellaBtn.addEventListener("click", salvaPagella);
 if (salvaPagellaBtn) salvaPagellaBtn.addEventListener("click", salvaPagella);
 if (dataInput) {
     dataInput.addEventListener("change", () => {
@@ -538,7 +574,51 @@ if (selectModulo) {
     });
 }
 
-// Initialization
+
+// Logic for Dual-Purpose Button
+function aggiornaStatoBottone() {
+    const btn = document.getElementById("salvaPagella");
+    const txt = document.getElementById("salvaPagellaText");
+    const container = document.getElementById("votiContainer");
+
+    if (!btn || !txt || !container) return;
+
+    if (container.children.length === 0) {
+        // Mode: Save Formation
+        txt.textContent = "Salva Formazione";
+        // btn.onclick = salvaFormazione; // Better to handle in the listener
+    } else {
+        // Mode: Save Votes
+        txt.textContent = "Salva Pagella";
+    }
+}
+
+// Global listener with logic switch
+if (salvaPagellaBtn) {
+    // Remove old listeners if any (by replacing node or just ensure correct logic)
+    // Since we are using modules, we can just overwrite the logic if we use a specific function
+    salvaPagellaBtn.onclick = async (e) => {
+        e.preventDefault();
+        const container = document.getElementById("votiContainer");
+        if (container && container.children.length === 0) {
+            await salvaFormazione(); // This triggers mostraCampiVoto -> content appears
+            aggiornaStatoBottone(); // switch state
+        } else {
+            await salvaPagella();
+        }
+    };
+}
+
+// Hook into state changes
+const observerVoti = new MutationObserver(aggiornaStatoBottone);
+if (votiContainer) {
+    observerVoti.observe(votiContainer, { childList: true });
+}
+
+// Initial check
+aggiornaStatoBottone();
+
+// Initial Logic
 renderCampo();
 calcolaStatistichePartite();
 popolaSelect();
