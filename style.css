@@ -1428,22 +1428,25 @@ input:checked+.pc-slider-switch:before {
 }
 
 /* Fix text cut-off in screenshots */
-.screenshot-mode #campo select {
-  padding: 0 !important;
-  /* Remove padding */
-  margin: 0 !important;
-  height: 22px !important;
-  /* Fixed height */
-  line-height: 20px !important;
-  /* Slight offset for visual center */
-  /* Force native appearance off again just in case */
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  /* Ensure background color matches the workaround */
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  display: block !important;
+/* Replaced via JS with .screenshot-replacement div */
+.screenshot-replacement {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
   text-align: center;
-  border-radius: 4px;
-  /* Ensure rounded corners persist */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  max-width: 65px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.screenshot-mode #campo select {
+  display: none !important;
+  /* Double check hiding */
 }

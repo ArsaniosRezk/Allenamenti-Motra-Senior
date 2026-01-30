@@ -479,7 +479,24 @@ const shareFormazioneBtn = document.getElementById("shareFormazione");
 if (shareFormazioneBtn) {
     shareFormazioneBtn.addEventListener("click", () => {
         const campo = document.getElementById("campo");
-        campo.classList.add("screenshot-mode"); // Optional styling hook
+        campo.classList.add("screenshot-mode");
+
+        // 1. Swap selects with text DIVs for perfect rendering
+        const selects = campo.querySelectorAll("select");
+        const restoreList = [];
+
+        selects.forEach(sel => {
+            const div = document.createElement("div");
+            div.className = "screenshot-replacement";
+            // Get selected text or placeholder
+            const text = sel.options[sel.selectedIndex]?.text || "-";
+            div.textContent = text;
+
+            // Insert div, hide select
+            sel.parentNode.insertBefore(div, sel);
+            sel.style.display = "none";
+            restoreList.push({ select: sel, div: div });
+        });
 
         // Use a slight timeout to ensure styles apply if needed, though usually redundant.
         // We force a specific background color for the canvas to look good.
@@ -490,6 +507,13 @@ if (shareFormazioneBtn) {
             useCORS: true // Ensure external images (if any) are loaded
         }).then((canvas) => {
             campo.classList.remove("screenshot-mode");
+
+            // 2. Restore selects
+            restoreList.forEach(item => {
+                item.div.remove();
+                item.select.style.display = "";
+            });
+
             canvas.toBlob((blob) => {
                 condividiImmagine(blob, `formazione_${new Date().toISOString().slice(0, 10)}.png`);
             });
