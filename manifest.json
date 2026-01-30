@@ -1,6 +1,6 @@
 {
-    "name": "F7 Manager - Motraneya",
-    "short_name": "F7 Manager",
+    "name": "Motra",
+    "short_name": "Motra",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#111827",

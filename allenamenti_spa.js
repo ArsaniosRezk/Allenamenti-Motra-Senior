@@ -1,6 +1,6 @@
 // allenamenti_spa.js
 import { giocatori as listaGiocatori } from "./giocatori.js";
-import { mostraAvviso } from "./utils.js";
+import { mostraAvviso, ID_SQUADRA } from "./utils.js";
 
 const firebaseDB = window.firebaseDB;
 const giocatoriListDiv = document.getElementById("lista-giocatori");
@@ -177,7 +177,7 @@ async function caricaAllenamento(dataSelezionata) {
 
     // Query Firebase
     try {
-        const snap = await firebaseDB.ref("allenamenti").once("value");
+        const snap = await firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).once("value");
         const allenamenti = snap.val();
         if (!allenamenti) return;
 
@@ -340,13 +340,16 @@ if (form) {
         try {
             if (allenamentoEsistenteId) {
                 // UPDATE existing
-                await firebaseDB.ref(`allenamenti/${allenamentoEsistenteId}`).update(allenamento);
+                await firebaseDB.ref(`${ID_SQUADRA}/allenamenti/${allenamentoEsistenteId}`).update(allenamento);
                 mostraAvviso("Allenamento aggiornato!", "success");
             } else {
                 // CREATE new
-                await firebaseDB.ref("allenamenti").push(allenamento);
+                await firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).push(allenamento);
                 mostraAvviso("Allenamento salvato", "success");
             }
+
+            // Refresh global data
+            document.dispatchEvent(new Event("data-update"));
 
             // Reset (optional, or keep data visible? Usually reset for next input)
             // If we reset, we lose the context of what we just edited.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "f7-manager-v1";
+const CACHE_NAME = "motra-v4";
 const ASSETS_TO_CACHE = [
     "./",
     "./index.html",

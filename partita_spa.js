@@ -1,6 +1,6 @@
 // partita_spa.js
 import { giocatori, abbreviaNomeFormazione } from "./giocatori.js";
-import { mostraAvviso } from "./utils.js";
+import { mostraAvviso, ID_SQUADRA, condividiImmagine } from "./utils.js";
 
 const firebaseDB = window.firebaseDB;
 
@@ -153,16 +153,13 @@ function getFormazioneCorrente() {
     return { titolari, panchina };
 }
 
-// Unified Card for Partita - Refined Round 3
+// Unified Card for Partita
 function creaPlayerCardPartita(nome, datiVoto = {}) {
     const isSquadra = nome === "Squadra";
     const voto = datiVoto.voto || 1; // Default "parta da 1"
     const isSV = datiVoto.voto === "S.V.";
     let minuti = datiVoto.minuti;
 
-    // Normalize minutes: 
-    // Logic: if undefined or 0, default to 1 (requested: "lo slider di base parta da 1")
-    // If > 50, cap at 50.
     if (minuti === undefined || minuti === null || minuti === "" || minuti < 1) {
         minuti = 1;
     }
@@ -187,9 +184,7 @@ function creaPlayerCardPartita(nome, datiVoto = {}) {
         </div>`;
     }
 
-    // Minuti Slider (1-50, Standard Label Color)
-    // Note: color for label removed to match 'Voto' (which uses var(--testo-muted) from class)
-    // Value remains orange (#f59e0b)
+    // Minuti Slider
     let boxMinuti = "";
     if (!isSquadra) {
         boxMinuti = `
@@ -282,10 +277,6 @@ document.addEventListener('change', (e) => {
             // S.V. On -> Collapse
             if (body) body.style.display = "none";
             if (footer) footer.style.display = "none";
-            // keep disabled style for header opacity if desired?
-            // "per le partite se si mette s.v. voglio che gli slider ... diventino grigi".
-            // Since we collapse, they are hidden, so greying out not strictly visible, but good for state.
-            // Also user said "il box si accorcia nascondendo il resto" in LATEST request.
             card.classList.add('disabled');
         } else {
             // S.V. Off -> Expand
@@ -354,11 +345,18 @@ function mostraStatistichePartite(stats) {
     if (existing) existing.remove();
 
     div.appendChild(table);
-    if (salvaFormazioneBtn) salvaFormazioneBtn.parentNode.insertBefore(div, salvaFormazioneBtn);
+    div.appendChild(table);
+    // Fix: Insert before the CONTAINER of the button, not the button itself (which is inside a flex row now)
+    const btnContainer = document.querySelector('.btn-salva-container');
+    if (btnContainer) {
+        btnContainer.parentNode.insertBefore(div, btnContainer);
+    } else if (salvaFormazioneBtn) {
+        salvaFormazioneBtn.parentNode.insertBefore(div, salvaFormazioneBtn);
+    }
 }
 
 async function calcolaStatistichePartite() {
-    const snap = await firebaseDB.ref("partite").once("value");
+    const snap = await firebaseDB.ref(`${ID_SQUADRA}/partite`).once("value");
     const partite = snap.val();
     const stats = {};
 
@@ -378,7 +376,7 @@ async function calcolaStatistichePartite() {
 }
 
 async function caricaFormazione(data) {
-    const snap = await firebaseDB.ref(`partite/${data}`).once("value");
+    const snap = await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}`).once("value");
     const partita = snap.val();
 
     const titolari = partita?.titolari || [];
@@ -417,7 +415,7 @@ async function salvaFormazione() {
     const { titolari, panchina } = getFormazioneCorrente();
     const modulo = selectModulo.value;
 
-    await firebaseDB.ref(`partite/${data}`).update({
+    await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}`).update({
         data,
         timestamp: new Date().toISOString(),
         tipo: "partita",
@@ -427,6 +425,7 @@ async function salvaFormazione() {
     });
     mostraCampiVoto(titolari, panchina);
     mostraAvviso("Formazione salvata");
+    document.dispatchEvent(new Event("data-update"));
 }
 
 async function salvaPagella() {
@@ -470,11 +469,33 @@ async function salvaPagella() {
 
     if (errore) return;
 
-    await firebaseDB.ref(`partite/${data}/giocatori`).set(voti);
+    await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}/giocatori`).set(voti);
     mostraAvviso("Partita salvata");
+    document.dispatchEvent(new Event("data-update"));
 }
 
 if (salvaFormazioneBtn) salvaFormazioneBtn.addEventListener("click", salvaFormazione);
+const shareFormazioneBtn = document.getElementById("shareFormazione");
+if (shareFormazioneBtn) {
+    shareFormazioneBtn.addEventListener("click", () => {
+        const campo = document.getElementById("campo");
+        campo.classList.add("screenshot-mode"); // Optional styling hook
+
+        // Use a slight timeout to ensure styles apply if needed, though usually redundant.
+        // We force a specific background color for the canvas to look good.
+        html2canvas(campo, {
+            scale: 2, // High res
+            backgroundColor: null, // Transparent to let CSS background show through
+            logging: false,
+            useCORS: true // Ensure external images (if any) are loaded
+        }).then((canvas) => {
+            campo.classList.remove("screenshot-mode");
+            canvas.toBlob((blob) => {
+                condividiImmagine(blob, `formazione_${new Date().toISOString().slice(0, 10)}.png`);
+            });
+        });
+    });
+}
 if (salvaPagellaBtn) salvaPagellaBtn.addEventListener("click", salvaPagella);
 if (dataInput) {
     dataInput.addEventListener("change", () => {

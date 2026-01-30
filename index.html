@@ -24,14 +24,17 @@
   <div id="page-stats" class="page-container">
     <div id="statisticheAllenamentiContainer"></div>
     <div id="statistichePartiteContainer"></div>
-    <hr />
+  </div>
+
+  <!-- Pagina 2: Storico -->
+  <div id="page-storico" class="page-container hidden">
     <div id="storicoContainer"></div>
   </div>
 
-  <!-- Pagina 2: Partita -->
+  <!-- Pagina 3: Partita -->
   <div id="page-partita" class="page-container hidden">
     <div class="flex-control-row">
-      <label for="dataPartita">Data partita</label>
+      <label for="dataPartita">Data</label>
       <input type="date" id="dataPartita" name="dataPartita" required />
     </div>
 
@@ -63,24 +66,36 @@
       </div>
     </div>
 
-    <button id="salvaFormazione">Salva Formazione</button>
+    <div class="btn-salva-container" style="display: flex; gap: 10px; margin-top: 10px;">
+      <button id="salvaFormazione" style="flex: 1;">Salva Formazione</button>
+      <button id="shareFormazione" class="btn-standard" style="width: auto; padding: 0 15px;">
+        <i class="fas fa-share-nodes"></i>
+      </button>
+    </div>
 
     <div id="votiContainer"></div>
     <button id="salvaPagella">Salva Pagella</button>
+    <!-- Hidden original buttons to keep JS logic intact for now, or just style them? 
+         User said "make keys accessible without scrolling to bottom". 
+         I will keep the IDs on the FABs or move the IDs. 
+         Wait, replacing buttons implies updating JS listeners if I change their nature significantly.
+         I'll stick to standard button restructuring in a moment. 
+         For now, just labels and page structure. -->
   </div>
 
-  <!-- Pagina 3: Allenamento -->
+  <!-- Pagina 4: Allenamento -->
   <div id="page-allenamento" class="page-container hidden">
     <div id="info-pagella">
       <div class="flex-control-row" style="width: 100%;">
-        <label for="dataAllenamento">Data Allenamento</label>
+        <label for="dataAllenamento">Data</label>
         <input type="date" id="dataAllenamento" name="dataAllenamento" required />
       </div>
     </div>
 
     <form id="allenamentoForm">
       <div id="lista-giocatori"></div>
-      <button type="submit">Salva Pagella Allenamento</button>
+
+      <button type="submit">Salva Pagella</button>
     </form>
   </div>
 
@@ -89,6 +104,10 @@
     <a href="#" class="nav-item active" data-target="page-stats" data-title="STATISTICHE">
       <i class="fas fa-chart-line"></i>
       <span>Stats</span>
+    </a>
+    <a href="#" class="nav-item" data-target="page-storico" data-title="CRONOLOGIA">
+      <i class="fas fa-history"></i>
+      <span>Cronologia</span>
     </a>
     <a href="#" class="nav-item" data-target="page-partita" data-title="PARTITA">
       <i class="fas fa-futbol"></i>

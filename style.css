@@ -797,37 +797,57 @@ ul {
 }
 
 .posizione {
-  background-color: var(--sfondo-card);
+  background-color: rgba(30, 41, 59, 0.7);
+  /* Dark semi-transparent */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   padding: 5px;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   width: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .posizione label {
   font-size: 0.6rem;
-  margin-top: 8px;
+  margin-top: 4px;
   white-space: nowrap;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 #campo select {
-  width: 65px;
-
-  max-width: 100%;
-  font-weight: bold;
-  font-size: 12px;
+  width: 100%;
+  min-width: 60px;
+  max-width: 65px;
+  font-weight: 700;
+  font-size: 0.8rem;
   text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-color: var(--quaternary);
-  color: var(--bianco);
+
+  background-color: rgba(0, 0, 0, 0.4);
+  /* Neutral dark glass */
+  color: white;
+
   border: none;
-  padding: 6px;
-  border-radius: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+#campo select:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Slider Styling */
@@ -840,6 +860,7 @@ ul {
 
 .input-voto-slider {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 6px;
   background: var(--secondary);
@@ -851,7 +872,6 @@ ul {
 
 .input-voto-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -1162,8 +1182,7 @@ h3 {
 }
 
 #div-panchina {
-  margin-bottom: 12px;
-  background-color: var(--sfondo-card);
+  /* background-color: var(--sfondo-card); */
   padding: 5px;
   border-radius: 5px;
 }
@@ -1171,9 +1190,8 @@ h3 {
 .statistiche-container {
   margin: 0 auto;
   /* max-width: 300px; */
-  margin-top: 12px;
-  /* Space above stats */
-  margin-bottom: 5px;
+  margin-top: 3px;
+  margin-bottom: 10px;
 }
 
 /* Unified Player Card Styling - Compact & Modern */
@@ -1265,6 +1283,8 @@ h3 {
 /* Slider Minuti (Secondary Distinct Color) */
 .input-minuti-slider {
   -webkit-appearance: none;
+  appearance: none;
+  /* Add standard property */
   width: 100%;
   height: 6px;
   border-radius: 5px;
@@ -1275,7 +1295,7 @@ h3 {
 
 .input-minuti-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
+  /* appearance: none; Removed standard prop from vendor pseudo */
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -1372,4 +1392,58 @@ input:checked+.pc-slider-switch:before {
   transform: scale(0.8);
   margin-right: -7px;
   margin-left: -7px;
+}
+
+/* Pending Badge */
+.badge-pending {
+  background-color: var(--secondary);
+  color: var(--testo-muted);
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pending-event .evento-header {
+  opacity: 0.8;
+}
+
+/* Screenshot Mode Utilities */
+.screenshot-mode .btn-salva-container,
+.screenshot-mode #form-partita,
+.screenshot-mode .hide-on-screenshot {
+  display: none !important;
+}
+
+/* Fix for html2canvas missing backdrop-filter support */
+.screenshot-mode .posizione {
+  /* Increase opacity to mimic the visual weight of the blur */
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  /* Remove border transparency to define edges better in image */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Fix text cut-off in screenshots */
+.screenshot-mode #campo select {
+  padding: 0 !important;
+  /* Remove padding */
+  margin: 0 !important;
+  height: 22px !important;
+  /* Fixed height */
+  line-height: 20px !important;
+  /* Slight offset for visual center */
+  /* Force native appearance off again just in case */
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  /* Ensure background color matches the workaround */
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: block !important;
+  text-align: center;
+  border-radius: 4px;
+  /* Ensure rounded corners persist */
 }

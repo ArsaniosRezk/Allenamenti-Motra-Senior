@@ -1,7 +1,7 @@
 // index.js (modificato per gestire "S.V.")
 import { giocatori as listaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
-import { mostraAvviso, condividiImmagine } from "./utils.js";
+import { mostraAvviso, condividiImmagine, ID_SQUADRA } from "./utils.js";
 
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
@@ -71,19 +71,28 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     </div>
   `;
 
+  /* Check if match has votes (is done) or just formation (pending) */
+  const haVoti = all.giocatori && Object.keys(all.giocatori).length > 0;
+  const isDaSvolgere = tipo === "partita" && !haVoti;
+
   const headerRight = document.createElement("div");
   headerRight.className = "evento-right";
 
   const toggleIcon = document.createElement("span");
   toggleIcon.className = "toggle-icon";
-  toggleIcon.innerHTML = `<i class="fas fa-chevron-down"></i>`;
 
-  // We append leftGroup (renaming it to avoid conflict if I didn't replace everything)
-  // Actually, I will replace the existing leftGroup logic.
+  if (isDaSvolgere) {
+    toggleIcon.innerHTML = `<span class="badge-pending">Da Svolgere</span>`;
+    toggleIcon.style.transform = "none"; // Disable rotation
+    toggleIcon.style.fontSize = "0.75rem";
+    toggleIcon.style.opacity = "0.8";
+  } else {
+    toggleIcon.innerHTML = `<i class="fas fa-chevron-down"></i>`;
+  }
 
   header.appendChild(headerLeft);
   header.appendChild(headerRight);
-  headerRight.appendChild(toggleIcon);
+  // headerRight.appendChild(toggleIcon); // Moved below actions
 
   /* Buttons Logic Moved Here */
   const deleteBtn = document.createElement("button");
@@ -94,13 +103,13 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     e.stopPropagation();
     if (confirm("Sei sicuro di voler eliminare questo elemento?")) {
       firebaseDB
-        .ref(`${tipo === "partita" ? "partite" : "allenamenti"}`)
+        .ref(`${ID_SQUADRA}/${tipo === "partita" ? "partite" : "allenamenti"}`)
         .child(all.id)
         .remove()
         .then(() => {
           const genere = tipo === "partita" ? "eliminata" : "eliminato";
           mostraAvviso(`${tipoCapitalizzato} ${genere}`, "success");
-          setTimeout(() => location.reload(), 1000);
+          document.dispatchEvent(new Event("data-update"));
         })
         .catch(() => {
           mostraAvviso("Errore durante l'eliminazione", "error");
@@ -138,86 +147,93 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   const dettaglio = document.createElement("div");
   dettaglio.className = "evento-dettaglio nascosto";
 
-  const table = document.createElement("table");
-  table.className = "mini-tabella";
+  // Only build table if NOT pending
+  if (!isDaSvolgere) {
+    const table = document.createElement("table");
+    table.className = "mini-tabella";
 
-  // Removed old action row logic from here
+    giocatori.forEach((nome, index) => {
+      if (tipo === "allenamento" && nome.trim().toLowerCase() === "squadra")
+        return;
 
-  giocatori.forEach((nome, index) => {
-    if (tipo === "allenamento" && nome.trim().toLowerCase() === "squadra")
-      return;
+      const tr = document.createElement("tr");
+      tr.className = index % 2 === 0 ? "riga-pari" : "riga-dispari";
 
-    const tr = document.createElement("tr");
-    tr.className = index % 2 === 0 ? "riga-pari" : "riga-dispari";
+      const presente = all.giocatori && all.giocatori[nome] !== undefined;
+      const votoRaw =
+        all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
+      const voto = votoRaw === "S.V." ? NaN : parseFloat(votoRaw);
+      const minuti = all.giocatori?.[nome]?.minuti;
+      const commento = all.giocatori?.[nome]?.commento || "";
+      const abbreviazione = abbreviaNome(nome);
 
-    const presente = all.giocatori && all.giocatori[nome] !== undefined;
-    const votoRaw =
-      all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
-    const voto = votoRaw === "S.V." ? NaN : parseFloat(votoRaw);
-    const minuti = all.giocatori?.[nome]?.minuti;
-    const commento = all.giocatori?.[nome]?.commento || "";
-    const abbreviazione = abbreviaNome(nome);
+      const tdNomeVoto = document.createElement("td");
+      const tdCommento = document.createElement("td");
+      tdNomeVoto.classList.add("col-nome");
+      tdCommento.classList.add("col-commento");
 
-    const tdNomeVoto = document.createElement("td");
-    const tdCommento = document.createElement("td");
-    tdNomeVoto.classList.add("col-nome");
-    tdCommento.classList.add("col-commento");
-
-    if (presente) {
-      const ultimoVoti =
-        tipo === "partita" ? backupUltimaPartita : backupUltimoAllenamento;
-      const votoPrecedente = ultimoVoti[nome];
-      let freccia = "",
-        classe = "";
-      if (!isNaN(voto) && !isNaN(votoPrecedente)) {
-        if (voto > votoPrecedente) {
-          freccia = "⬆︎";
-          classe = "migliorato";
-        } else if (voto < votoPrecedente) {
-          freccia = "⬇︎";
-          classe = "peggiorato";
+      if (presente) {
+        const ultimoVoti =
+          tipo === "partita" ? backupUltimaPartita : backupUltimoAllenamento;
+        const votoPrecedente = ultimoVoti[nome];
+        let freccia = "",
+          classe = "";
+        if (!isNaN(voto) && !isNaN(votoPrecedente)) {
+          if (voto > votoPrecedente) {
+            freccia = "⬆︎";
+            classe = "migliorato";
+          } else if (voto < votoPrecedente) {
+            freccia = "⬇︎";
+            classe = "peggiorato";
+          }
         }
-      }
-      ultimoVoti[nome] = voto;
+        ultimoVoti[nome] = voto;
 
-      const votoDisplay =
-        votoRaw === "S.V." ? "S.V." : isNaN(voto) ? "-" : voto;
-      tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${votoDisplay} <span class="freccia ${classe}">${freccia}</span>`;
-      tdCommento.textContent = commento;
+        const votoDisplay =
+          votoRaw === "S.V." ? "S.V." : isNaN(voto) ? "-" : voto;
+        tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${votoDisplay} <span class="freccia ${classe}">${freccia}</span>`;
+        tdCommento.textContent = commento;
 
-      const stats =
-        tipo === "partita" ? statsPartita[nome] : statsAllenamento[nome];
-      stats.presenze++;
+        const stats =
+          tipo === "partita" ? statsPartita[nome] : statsAllenamento[nome];
+        stats.presenze++;
 
-      if (tipo === "partita") {
-        if (!isNaN(minuti)) stats.minuti += minuti;
-        if (!isNaN(voto)) {
-          stats.sommaVoti += voto;
-          stats._conteggioMedia++;
+        if (tipo === "partita") {
+          if (!isNaN(minuti)) stats.minuti += minuti;
+          if (!isNaN(voto)) {
+            stats.sommaVoti += voto;
+            stats._conteggioMedia++;
+          }
+        } else {
+          if (!isNaN(voto)) stats.sommaVoti += voto;
         }
       } else {
-        if (!isNaN(voto)) stats.sommaVoti += voto;
+        tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> assente`;
+        tdCommento.textContent = "";
+        if (tipo === "allenamento") assenzeAllenamento[nome]++;
       }
-    } else {
-      tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> assente`;
-      tdCommento.textContent = "";
-      if (tipo === "allenamento") assenzeAllenamento[nome]++;
-    }
 
-    tr.appendChild(tdNomeVoto);
-    tr.appendChild(tdCommento);
-    table.appendChild(tr);
-  });
+      tr.appendChild(tdNomeVoto);
+      tr.appendChild(tdCommento);
+      table.appendChild(tr);
+    });
 
-  dettaglio.appendChild(table);
+    dettaglio.appendChild(table);
+  }
 
-  // header.appendChild(leftGroup); // Removed old logic
-  header.addEventListener("click", () => {
-    const aperto = !dettaglio.classList.contains("nascosto");
-    dettaglio.classList.toggle("nascosto");
-    container.classList.toggle("expanded"); // Add expanded class for styling
-    toggleIcon.style.transform = aperto ? "rotate(0deg)" : "rotate(180deg)";
-  });
+  // Only enable toggle if NOT pending
+  if (!isDaSvolgere) {
+    header.addEventListener("click", () => {
+      const aperto = !dettaglio.classList.contains("nascosto");
+      dettaglio.classList.toggle("nascosto");
+      container.classList.toggle("expanded"); // Add expanded class for styling
+      toggleIcon.style.transform = aperto ? "rotate(0deg)" : "rotate(180deg)";
+    });
+    header.style.cursor = "pointer"; // Explicitly show pointer
+  } else {
+    header.style.cursor = "default";
+    container.classList.add("pending-event"); // Optional style hooks
+  }
 
   container.appendChild(header);
   container.appendChild(dettaglio);
@@ -300,68 +316,86 @@ function creaTabellaStatistiche(statsObj, titolo) {
   return html;
 }
 
-Promise.all([
-  firebaseDB.ref("allenamenti").once("value"),
-  firebaseDB.ref("partite").once("value"),
-]).then(([snapAll, snapPar]) => {
-  const allenamenti = snapAll.val();
-  const partite = snapPar.val();
-  inizializzaStats();
+function caricaDati() {
+  Promise.all([
+    firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).once("value"),
+    firebaseDB.ref(`${ID_SQUADRA}/partite`).once("value"),
+  ]).then(([snapAll, snapPar]) => {
+    const allenamenti = snapAll.val();
+    const partite = snapPar.val();
 
-  const arrayAllenamenti = allenamenti
-    ? Object.entries(allenamenti).map(([id, val]) => ({ id, ...val }))
-    : [];
+    // Reset stats
+    inizializzaStats();
 
-  const arrayPartite = partite
-    ? Object.entries(partite).map(([id, val]) => ({
-      id,
-      tipo: "partita",
-      ...val,
-    }))
-    : [];
+    const arrayAllenamenti = allenamenti
+      ? Object.entries(allenamenti).map(([id, val]) => ({ id, ...val }))
+      : [];
 
-  arrayAllenamenti.sort(
-    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-  );
-  arrayPartite.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const arrayPartite = partite
+      ? Object.entries(partite).map(([id, val]) => ({
+        id,
+        tipo: "partita",
+        ...val,
+      }))
+      : [];
 
-  document.getElementById("storicoContainer").innerHTML =
-    "<h3>Cronologia Allenamenti</h3>";
-  arrayAllenamenti.forEach((all) => {
-    const evento = creaEvento(all, {}, {});
-    document.getElementById("storicoContainer").appendChild(evento);
-  });
+    arrayAllenamenti.sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    arrayPartite.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-  const partiteDiv = document.createElement("div");
-  const titoloPartite = document.createElement("h3");
-  titoloPartite.textContent = "Cronologia Partite";
-  partiteDiv.appendChild(titoloPartite);
-  arrayPartite.forEach((par) => {
-    const evento = creaEvento(par, {}, {});
-    partiteDiv.appendChild(evento);
-  });
-  document.getElementById("storicoContainer").appendChild(partiteDiv);
+    // Clear Containers
+    const storicoContainer = document.getElementById("storicoContainer");
+    if (storicoContainer) {
+      storicoContainer.innerHTML = "<h3>Allenamenti</h3>";
 
-  document.getElementById("statisticheAllenamentiContainer").innerHTML =
-    creaTabellaStatistiche(statsAllenamento, "Statistiche Allenamenti");
-  document.getElementById("statistichePartiteContainer").innerHTML =
-    creaTabellaStatistiche(statsPartita, "Statistiche Partite");
+      arrayAllenamenti.forEach((all) => {
+        const evento = creaEvento(all, {}, {});
+        storicoContainer.appendChild(evento);
+      });
 
-  document.querySelectorAll(".btn-copia-statistiche").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const targetId = btn.getAttribute("data-blocco");
-      const targetElement = document.getElementById(targetId);
+      const partiteDiv = document.createElement("div");
+      const titoloPartite = document.createElement("h3");
+      titoloPartite.textContent = "Partite";
+      partiteDiv.appendChild(titoloPartite);
+      arrayPartite.forEach((par) => {
+        const evento = creaEvento(par, {}, {});
+        partiteDiv.appendChild(evento);
+      });
+      storicoContainer.appendChild(partiteDiv);
+    }
 
-      if (targetElement) {
-        targetElement.classList.add("screenshot-mode");
-        // Use hex for dark background
-        html2canvas(targetElement, { backgroundColor: null }).then((canvas) => {
-          targetElement.classList.remove("screenshot-mode");
-          canvas.toBlob((blob) => {
-            condividiImmagine(blob, "statistiche.png");
+    document.getElementById("statisticheAllenamentiContainer").innerHTML =
+      creaTabellaStatistiche(statsAllenamento, "Statistiche Allenamenti");
+    document.getElementById("statistichePartiteContainer").innerHTML =
+      creaTabellaStatistiche(statsPartita, "Statistiche Partite");
+
+    // Re-attach screenshot listeners for new elements
+    document.querySelectorAll(".btn-copia-statistiche").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const targetId = btn.getAttribute("data-blocco");
+        const targetElement = document.getElementById(targetId);
+
+        if (targetElement) {
+          targetElement.classList.add("screenshot-mode");
+          // Use hex for dark background
+          html2canvas(targetElement, { backgroundColor: null }).then((canvas) => {
+            targetElement.classList.remove("screenshot-mode");
+            canvas.toBlob((blob) => {
+              condividiImmagine(blob, "statistiche.png");
+            });
           });
-        });
-      }
+        }
+      });
     });
   });
+}
+
+// Initial Load
+caricaDati();
+
+// Listen for updates
+document.addEventListener("data-update", () => {
+  console.log("Refreshing data...");
+  caricaDati();
 });
