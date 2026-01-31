@@ -390,4 +390,7 @@ if (form) {
     });
 }
 
-initAllenamenti();
+document.addEventListener("dati-pronti", () => {
+    console.log("Allenamenti SPA: Dati pronti ricevuti.");
+    initAllenamenti();
+});

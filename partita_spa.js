@@ -615,10 +615,31 @@ if (votiContainer) {
     observerVoti.observe(votiContainer, { childList: true });
 }
 
-// Initial check
-aggiornaStatoBottone();
+// Initial Logic wrapped in listener
+function initPartitaPage() {
+    renderCampo(); // Will use loaded `giocatori`
+    calcolaStatistichePartite();
+    popolaSelect(); // Will use loaded `giocatori`
+    aggiornaStatoBottone();
+}
 
-// Initial Logic
-renderCampo();
-calcolaStatistichePartite();
-popolaSelect();
+// Wait for global data ready event
+document.addEventListener("dati-pronti", () => {
+    console.log("Partita SPA: Dati pronti ricevuti. Inizializzazione pagina.");
+    initPartitaPage();
+});
+
+// Also run if data is already loaded (race condition safety)
+// Checking if list is populated might be weak if database is empty.
+// Better to rely on index.js dispatching.
+// OR check current export.
+// Since modules run once, if index.js runs first and dispatches before we listen?
+// index.js imports partita_spa.js (likely NOT, they are separate scripts in HTML usually? No, index.html doesn't import them).
+// index.html likely imports main.js which imports everything? or separate script tags?
+// Checked index.html: No script tags shown in snippet.
+// Based on project structure, if using modules, usually there is an entry point.
+// If imported as modules, execution order is DFS.
+// If index.js is the entry, it imports SPAs?
+// If they are side-effect imports `import './partita_spa.js'`, they run immediately.
+// Then index.js runs.
+// So listeners will be set BEFORE index.js calls `avviaApp`. Safe.

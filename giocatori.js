@@ -1,22 +1,33 @@
-export const giocatori = [
-  "Alessandro Botrous",
-  "Alessandro Tawadrous",
-  "Amir Atef",
-  "Antonios Girgis",
-  "Armia Rezk",
-  "Arsanios Rezk",
-  "Bisho Karim",
-  "Ishak Salib",
-  "Kirollos Youssef",
-  "Kirolos Shehata",
-  "Kirullos Soliman",
-  "Marco Salib",
-  "Matteo Boles",
-  "Mina Makram",
-  "Mino Basem",
-  "Peter Melek",
-  "Tamer Mekkar",
-];
+import { ID_SQUADRA } from "./utils.js";
+
+// Mutable array exported - importers will see updates to this binding
+export let giocatori = [];
+
+export async function caricaGiocatori() {
+  try {
+    const snapshot = await firebaseDB.ref(`${ID_SQUADRA}/rosa`).once('value');
+    const data = snapshot.val();
+
+    if (data) {
+      // Convert object/list to array of names
+      const lista = Object.values(data);
+      // Sort alphabetically
+      lista.sort();
+
+      // Clear and populate array
+      giocatori.length = 0;
+      giocatori.push(...lista);
+      console.log("Rosa caricata:", giocatori.length, "giocatori");
+    } else {
+      console.warn("Nessun giocatore trovato nel database (senior/rosa). Usare lista vuota.");
+      giocatori.length = 0;
+    }
+    return giocatori;
+  } catch (error) {
+    console.error("Errore caricamento rosa:", error);
+    return [];
+  }
+}
 
 // 1. Dizionario per le eccezioni manuali (Soprannomi)
 const NICKNAMES = {

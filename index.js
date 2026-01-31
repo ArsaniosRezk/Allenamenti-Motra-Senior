@@ -1,5 +1,5 @@
-// index.js (modificato per gestire "S.V.")
-import { giocatori as listaGiocatori } from "./giocatori.js";
+// index.js (modificato per gestire "S.V." e DB Rosa)
+import { giocatori as listaGiocatori, caricaGiocatori } from "./giocatori.js";
 import { abbreviaNome } from "./giocatori.js";
 import { mostraAvviso, condividiImmagine, ID_SQUADRA } from "./utils.js";
 
@@ -13,7 +13,8 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-const giocatori = [...listaGiocatori, "Squadra"];
+// Will be populated after DB load
+let giocatori = [];
 
 const storicoDiv = document.getElementById("storicoContainer");
 const statsDiv = document.getElementById("statisticheContainer");
@@ -24,6 +25,11 @@ let numeroAllenamenti = 0;
 const assenzeAllenamento = {};
 
 function inizializzaStats() {
+  // Ensure "Squadra" is always present for logic
+  const fullList = [...listaGiocatori, "Squadra"];
+  // Update local variable for use in other functions
+  giocatori = fullList;
+
   giocatori.forEach((nome) => {
     statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
     statsPartita[nome] = {
@@ -392,10 +398,31 @@ function caricaDati() {
 }
 
 // Initial Load
-caricaDati();
+
+// Wrapper for initialization
+async function avviaApp() {
+  try {
+    console.log("Avvio app: caricamento giocatori...");
+    const giocatoriDB = await caricaGiocatori();
+
+    // Dispatch event for other modules (SPAs) to know players are ready
+    document.dispatchEvent(new Event("dati-pronti"));
+
+    console.log("Giocatori caricati. Avvio lettura dati...");
+    await caricaDati();
+  } catch (err) {
+    console.error("Errore avvio app:", err);
+    mostraAvviso("Errore caricamento dati iniziali", "error");
+  }
+}
+
+// Initial Load
+avviaApp();
 
 // Listen for updates
 document.addEventListener("data-update", () => {
   console.log("Refreshing data...");
-  caricaDati();
+  caricaDati(); // Refresh stats/history (does not re-fetch players unless we want to?)
+  // Usually roster changes rarely. If we want auto-refresh relative to roster:
+  // avviaApp(); 
 });
