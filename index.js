@@ -31,13 +31,14 @@ function inizializzaStats() {
   giocatori = fullList;
 
   giocatori.forEach((nome) => {
-    statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0 };
+    statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0, votiHistory: [] };
     statsPartita[nome] = {
       presenze: 0,
       sommaVoti: 0,
       media: 0,
       minuti: 0,
       _conteggioMedia: 0,
+      votiHistory: [] // New: Array to store all votes for MV3 calc
     };
     assenzeAllenamento[nome] = 0;
   });
@@ -213,6 +214,12 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
         } else {
           if (!isNaN(voto)) stats.sommaVoti += voto;
         }
+
+        // Generic History Push (for both matches and trainings)
+        if (!isNaN(voto)) {
+          // Use timestamp if avail, else fallback
+          stats.votiHistory.push({ voto: voto, timestamp: all.timestamp });
+        }
       } else {
         tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> assente`;
         tdCommento.textContent = "";
@@ -254,11 +261,21 @@ function creaTabellaStatistiche(statsObj, titolo) {
 
   let ordinati = Object.entries(statsObj).map(([nome, dati]) => {
     let mediaBase;
-    if (titolo === "Partite") {
+    if (titolo === "Statistiche Partite") {
       const conteggioMedia = dati._conteggioMedia || 0;
       mediaBase = conteggioMedia > 0 ? dati.sommaVoti / conteggioMedia : 0;
     } else {
       mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
+    }
+
+    // New: Calculate MV3 for EVERY table
+    let mv3 = "-";
+    if (dati.votiHistory && dati.votiHistory.length > 0) {
+      // Sort by timestamp descending (newest first)
+      const sortedVotes = [...dati.votiHistory].sort((a, b) => b.timestamp - a.timestamp);
+      const last3 = sortedVotes.slice(0, 3);
+      const sum3 = last3.reduce((acc, curr) => acc + curr.voto, 0);
+      mv3 = (sum3 / last3.length).toFixed(2);
     }
 
     let media;
@@ -271,7 +288,7 @@ function creaTabellaStatistiche(statsObj, titolo) {
       media = mediaPenalizzata + bonus;
     }
 
-    return { nome, ...dati, media };
+    return { nome, ...dati, media, mv3 };
   });
 
   if (titolo === "Statistiche Partite") {
@@ -295,7 +312,7 @@ function creaTabellaStatistiche(statsObj, titolo) {
         </button>
       </div>
       <table class="tabella-statistiche" id="${idTabella}">
-        <thead><tr><th>Giocatore</th><th>P</th><th>MV</th></tr></thead>
+        <thead><tr><th>Giocatore</th><th>P</th><th>MV3</th><th>MV</th></tr></thead>
         <tbody>`;
 
   ordinati.forEach((dati, i) => {
@@ -311,9 +328,20 @@ function creaTabellaStatistiche(statsObj, titolo) {
       else classeMedia = "media-alta";
     }
 
+    // New: MV3 Styling
+    let classeMedia3 = "";
+    const mv3Val = parseFloat(dati.mv3);
+    if (!isNaN(mv3Val)) {
+      if (mv3Val < 6) classeMedia3 = "media-bassa-soft";
+      else if (mv3Val < 7) classeMedia3 = "media-media-soft";
+      else if (mv3Val < 8) classeMedia3 = "media-buona-soft";
+      else classeMedia3 = "media-alta-soft";
+    }
+
     html += `<tr class="${i % 2 === 0 ? "riga-pari" : "riga-dispari"}">
             <td>${dati.nome}</td>
             <td class="centrato">${presenzeDisplay}</td>
+            <td class="centrato ${classeMedia3}">${dati.mv3}</td>
             <td class="centrato ${classeMedia}">${mediaDisplay}</td>
           </tr>`;
   });
@@ -410,9 +438,14 @@ async function avviaApp() {
 
     console.log("Giocatori caricati. Avvio lettura dati...");
     await caricaDati();
+
+    // Skeleton: Remove loading class when ready
+    document.body.classList.remove("loading");
   } catch (err) {
     console.error("Errore avvio app:", err);
     mostraAvviso("Errore caricamento dati iniziali", "error");
+    // Even on error, remove skeleton to show alert/content
+    document.body.classList.remove("loading");
   }
 }
 

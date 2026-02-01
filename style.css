@@ -60,10 +60,7 @@ body {
   font-size: 1.25rem;
 }
 
-/* Remove old navigation */
-.navigation-div {
-  display: none !important;
-}
+
 
 /* Card Styling */
 .card,
@@ -115,34 +112,7 @@ textarea:focus {
   letter-spacing: 1px;
 }
 
-.navigation-div {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 auto;
-  gap: 10px;
-}
 
-#intestazione .link {
-  color: var(--link);
-  /* font-weight: normal; */
-}
-
-#info-pagella {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-#info-pagella label {
-  font-weight: bold;
-}
-
-/* .allenamento {
-  border-top: 1px solid #ccc;
-  padding: 8px 0;
-} */
 
 /* CAMPI */
 
@@ -1536,8 +1506,8 @@ input:checked+.pc-slider-switch:before {
   max-width: 400px;
   height: 50px;
   border-radius: 20px;
-  background-color: #3564b0;
-  color: white;
+  background-color: var(--btn-floating-bg);
+  color: var(--btn-floating-text);
   border: none;
   font-size: 1.1rem;
   font-weight: 600;
@@ -1568,4 +1538,117 @@ input:checked+.pc-slider-switch:before {
     transform: translateY(0);
     opacity: 1;
   }
+}
+
+
+/* Soft Classes for MV3 - Strict Override & Solid Background */
+/* We set background-color to the card background (solid) to hide zebra striping. */
+/* Then we use box-shadow inset to apply the semi-transparent tint on top. */
+td.media-bassa-soft,
+.media-bassa-soft {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-bassa-soft) !important;
+  color: white !important;
+}
+
+td.media-media-soft,
+.media-media-soft {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-media-soft) !important;
+  color: white !important;
+}
+
+td.media-buona-soft,
+.media-buona-soft {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-buona-soft) !important;
+  color: white !important;
+}
+
+td.media-alta-soft,
+.media-alta-soft {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-alta-soft) !important;
+  color: white !important;
+}
+
+/* FIX: Apply same box-shadow solid background logic to standard MV columns (media-*) to prevent zebra striping */
+td.media-bassa,
+.media-bassa {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-bassa) !important;
+  color: white !important;
+}
+
+td.media-media,
+.media-media {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-media) !important;
+  color: white !important;
+}
+
+td.media-buona,
+.media-buona {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-buona) !important;
+  color: white !important;
+}
+
+td.media-alta,
+.media-alta {
+  background-color: var(--sfondo-card) !important;
+  box-shadow: inset 0 0 0 9999px var(--media-alta) !important;
+  color: white !important;
+}
+
+/* Skeleton Loading Utils */
+.skeleton {
+  background: #1e293b;
+  background: linear-gradient(110deg, #1e293b 8%, #334155 18%, #1e293b 33%);
+  border-radius: 5px;
+  background-size: 200% 100%;
+  animation: 1.5s shine linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position-x: -200%;
+  }
+}
+
+.skeleton-card {
+  height: 120px;
+  width: 100%;
+  margin-bottom: 16px;
+  border-radius: 10px;
+}
+
+.skeleton-text {
+  height: 20px;
+  margin-bottom: 8px;
+  width: 70%;
+}
+
+.skeleton-text.short {
+  width: 40%;
+}
+
+.skeleton-text.title {
+  height: 30px;
+  width: 60%;
+  margin: 10px auto;
+}
+
+#skeleton-container {
+  padding: 10px;
+  display: none;
+  /* Hidden by default, toggled by JS */
+}
+
+.loading #skeleton-container {
+  display: block;
+}
+
+.loading .page-container {
+  display: none !important;
 }

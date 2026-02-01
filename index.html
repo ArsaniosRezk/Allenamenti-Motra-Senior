@@ -9,13 +9,22 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="colors.css" />
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 
-<body>
+<body class="loading">
   <!-- Intestazione Comune -->
   <div id="intestazione">
     <h2 id="titolo-pagina">STATISTICHE</h2>
+  </div>
+
+  <!-- Skeleton Loading (Visible only when body has .loading) -->
+  <div id="skeleton-container">
+    <div class="skeleton skeleton-text title"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
   </div>
 
   <!-- Pagine SPA -->

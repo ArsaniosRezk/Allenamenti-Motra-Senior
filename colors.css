@@ -1,66 +1,91 @@
 :root {
-  --sfondo: #0a2647;
-  --testo: yellow;
-  /* Premium Dark Theme Palette */
-  --sfondo: #0f172a;
-  /* Slate 900 - Background */
-  --sfondo-card: #1e293b;
-  /* Slate 800 - Cards/Containers */
-  --testo: #f8fafc;
-  /* Slate 50 - Main Text */
-  --testo-muted: #94a3b8;
-  /* Slate 400 - Secondary Text */
+    /* =========================================
+     1. BASE PALETTE (Backgrounds & Text)
+     ========================================= */
+    --sfondo: #0f172a;
+    /* Slate 900 - Main Background */
+    --sfondo-card: #1e293b;
+    /* Slate 800 - Cards & Containers */
 
-  --primary: #3b82f6;
-  /* Blue 500 - Primary Actions */
-  --primary-hover: #2563eb;
-  /* Blue 600 */
-  --secondary: #334155;
-  /* Slate 700 - Secondary Elements */
+    --testo: #f8fafc;
+    /* Slate 50 - Primary Text */
+    --testo-muted: #94a3b8;
+    /* Slate 400 - Secondary Text */
+    --testo-inverse: #ffffff;
+    /* White - Text on colored backgrounds */
 
-  --accent: #8b5cf6;
-  /* Violet 500 - Accents */
+    /* =========================================
+     2. BRAND COLORS
+     ========================================= */
+    --primary: #3b82f6;
+    /* Blue 500 - Primary Actions */
+    --primary-hover: #2563eb;
+    /* Blue 600 */
+    --secondary: #334155;
+    /* Slate 700 - Secondary Elements */
+    --accent: #8b5cf6;
+    /* Violet 500 - Accents */
 
-  --success: #10b981;
-  /* Emerald 500 */
-  --error: #ef4444;
-  /* Red 500 */
-  --warning: #f59e0b;
-  /* Amber 500 */
+    /* =========================================
+     3. FEEDBACK (Status)
+     ========================================= */
+    --success: #10b981;
+    /* Emerald 500 */
+    --error: #ef4444;
+    /* Red 500 */
+    --warning: #f59e0b;
+    /* Amber 500 */
 
-  /* Deprecated/Mapped for backward compatibility but updated values */
-  --bianco: var(--testo);
-  --link: var(--primary);
-  --interaction: var(--primary);
-  --placeholder: var(--testo-muted);
+    /* =========================================
+     4. COMPONENTS
+     ========================================= */
 
-  /* Table/List Striping */
-  --tertiary: #1e293b;
-  /* Same as card for seamless look */
-  --quaternary: #334155;
-  /* Lighter for contrast */
+    /* Floating Save Button */
+    --btn-floating-bg: #3564b0;
+    /* Custom Blue for Save Button */
+    --btn-floating-text: var(--testo-inverse);
 
-  /* Specialized */
-  --toggle-negativo: var(--error);
-  --toggle-neutro: var(--testo-muted);
-  --toggle-positivo: var(--success);
+    /* Delete Buttons */
+    --btn-elimina-bg: rgba(239, 68, 68, 0.1);
+    --btn-elimina-border: var(--error);
+    --btn-elimina-text: var(--error);
 
-  --avviso-success-bg: var(--success);
-  --avviso-error-bg: var(--error);
+    /* Ratings / Voti (Media) */
+    --media-bassa: #ef444aad;
+    /* Muted Red */
+    --media-media: #f59e0bb3;
+    /* Muted Amber */
+    --media-buona: #10b981b3;
+    /* Muted Emerald */
+    --media-alta: #059669;
+    /* Emerald 600 */
 
-  /* Media Voti Colors - Muted for Premium Dark Theme */
-  --media-bassa: #ef444aad;
-  /* Muted Red */
-  --media-media: #f59e0bb3;
-  /* Muted Amber */
-  --media-buona: #10b981b3;
-  /* Muted Emerald */
-  --media-alta: #059669;
-  /* Emerald 600 (already strict) */
+    /* Ratings / Voti (Media - Soft / 50% Opacity) */
+    --media-bassa-soft: #ef444a57;
+    --media-media-soft: #f59e0b59;
+    --media-buona-soft: #10b98159;
+    --media-alta-soft: #05966980;
 
+    /* Toggles (Switch) */
+    --toggle-negativo: var(--error);
+    --toggle-neutro: var(--testo-muted);
+    --toggle-positivo: var(--success);
 
-  /* Button specific */
-  --btn-elimina-bg: rgba(239, 68, 68, 0.1);
-  --btn-elimina-border: var(--error);
-  --btn-elimina-text: var(--error);
+    /* Notifications (Avvisi) */
+    --avviso-success-bg: var(--success);
+    --avviso-error-bg: var(--error);
+
+    /* Lists & Tables */
+    --tertiary: #1e293b;
+    /* Dictionary/Even rows */
+    --quaternary: #334155;
+    /* Odd rows */
+
+    /* =========================================
+     5. LEGACY / ALIASES
+     ========================================= */
+    --bianco: var(--testo);
+    --link: var(--primary);
+    --interaction: var(--primary);
+    --placeholder: var(--testo-muted);
 }
