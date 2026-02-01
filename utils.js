@@ -1,6 +1,6 @@
 // utils.js
 
-export const ID_SQUADRA = "motraA";
+export const ID_SQUADRA = "senior";
 
 export function mostraAvviso(messaggio, tipo = "success") {
     const avviso = document.getElementById("avviso");
