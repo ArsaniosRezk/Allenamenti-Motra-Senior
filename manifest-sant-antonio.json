@@ -4,7 +4,7 @@
     "short_name": "Sant'Antonio",
     "description": "Allenamenti, formazioni e pagelle della squadra.",
     "lang": "it",
-    "start_url": "./index.html#stats",
+    "start_url": "./index.html?team=sant-antonio#stats",
     "scope": "./",
     "display": "standalone",
     "orientation": "portrait",

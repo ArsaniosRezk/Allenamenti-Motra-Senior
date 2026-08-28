@@ -1,5 +1,6 @@
 // allenamenti_spa.js - inserimento e modifica delle pagelle di allenamento
 import { giocatori as listaGiocatori } from "./giocatori.js";
+import { dataEvento } from "./statistiche.js";
 import {
     mostraAvviso,
     escapeHtml,
@@ -201,7 +202,11 @@ async function trovaAllenamentoPerData(data) {
     const allenamenti = snap.val();
     if (!allenamenti) return null;
 
-    const trovati = Object.entries(allenamenti).filter(([, d]) => d.data === data);
+    // Si confronta dataEvento(), non d.data: i record salvati senza data
+    // (ce n'e' almeno uno sul database) sono comunque raggiungibili tramite
+    // il timestamp. Cercandoli per d.data non si trovavano mai e sceglierne
+    // la data nel calendario creava un doppione invece di aprirli.
+    const trovati = Object.entries(allenamenti).filter(([, d]) => dataEvento(d) === data);
     if (trovati.length === 0) return null;
     if (trovati.length > 1) {
         console.warn("Attenzione: " + trovati.length + " allenamenti con data " + data);
@@ -209,35 +214,49 @@ async function trovaAllenamentoPerData(data) {
     return { id: trovati[0][0], dati: trovati[0][1] };
 }
 
+/* Cambiando data velocemente le letture possono tornare fuori ordine:
+   solo l'ultima richiesta ha il diritto di riempire il form. Senza questo
+   controllo la risposta vecchia lasciava allenamentoEsistenteId puntato al
+   record di un'altra data, e il salvataggio successivo lo sovrascriveva. */
+let letturaCorrente = 0;
+
 async function caricaAllenamento(data) {
     if (!data) return;
 
+    const richiesta = ++letturaCorrente;
     resetForm();
     allenamentoEsistenteId = null;
 
+    let trovato = null;
     try {
-        const trovato = await trovaAllenamentoPerData(data);
-        if (!trovato) return;
-
-        allenamentoEsistenteId = trovato.id;
-        const giocatoriDati = trovato.dati.giocatori || {};
-
-        listaGiocatori.forEach((nome, index) => {
-            const dati = giocatoriDati[nome];
-            if (!dati) return impostaPresenza(index, false);
-
-            impostaPresenza(index, true);
-            impostaVoto(index, dati.voto);
-            impostaToggle(index, "bonusAtletica", dati.bonusAtletica);
-            impostaToggle(index, "bonusPartitella", dati.bonusPartitella);
-            impostaCommento(index, dati.commento);
-        });
-
-        mostraAvviso("Allenamento esistente caricato");
+        trovato = await trovaAllenamentoPerData(data);
     } catch (err) {
         console.error("Errore caricamento allenamento:", err);
-        mostraAvviso("Errore nel caricamento dell'allenamento", "error");
+        if (richiesta === letturaCorrente) {
+            mostraAvviso("Errore nel caricamento dell'allenamento", "error");
+        }
+        return;
     }
+
+    // Nel frattempo l'utente ha scelto un'altra data: questa risposta e' vecchia
+    if (richiesta !== letturaCorrente) return;
+    if (!trovato) return;
+
+    allenamentoEsistenteId = trovato.id;
+    const giocatoriDati = trovato.dati.giocatori || {};
+
+    listaGiocatori.forEach((nome, index) => {
+        const dati = giocatoriDati[nome];
+        if (!dati) return impostaPresenza(index, false);
+
+        impostaPresenza(index, true);
+        impostaVoto(index, dati.voto);
+        impostaToggle(index, "bonusAtletica", dati.bonusAtletica);
+        impostaToggle(index, "bonusPartitella", dati.bonusPartitella);
+        impostaCommento(index, dati.commento);
+    });
+
+    mostraAvviso("Allenamento esistente caricato");
 }
 
 /* =========================================================

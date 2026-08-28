@@ -4,12 +4,15 @@
   box-sizing: border-box;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
+/* Inter si carica con un <link> in index.html: qui l'@import stava dopo
+   una regola e per le specifiche CSS veniva ignorato, cosi' il sito girava
+   da sempre sul sans-serif di sistema. */
 body {
   font-family: 'Inter', sans-serif;
-  padding: 10px 10px 80px 10px;
-  /* Added bottom padding for navbar */
+  /* Le safe area servono davvero: il viewport e' dichiarato viewport-fit=cover
+     e la status bar iOS e' translucida, quindi il contenuto ci finisce sotto. */
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 10px
+           calc(80px + env(safe-area-inset-bottom, 0px)) 10px;
   max-width: 600px;
   /* Slightly wider for modern feel */
   margin: auto;
@@ -21,7 +24,7 @@ body {
 /* Bottom Navigation - Floating & Rounded */
 .bottom-nav {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -272,14 +275,18 @@ button {
   border-radius: 5px;
 }
 
+/* In basso il toast finiva sopra la navbar: stesso z-index, ma piu' avanti
+   nel DOM, quindi vinceva lui e a ogni salvataggio copriva la barra.
+   In alto non litiga ne' con la navbar ne' con il bottone flottante. */
 #avviso {
   position: fixed;
-  bottom: 0px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   padding: 10px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   display: none;
-  z-index: 1000;
+  z-index: 1100;
   font-weight: bold;
   text-align: center;
   width: 100%;
@@ -1210,8 +1217,9 @@ input:checked+.pc-slider-switch:before {
 .floating-pill-btn {
   position: fixed;
   /* "Sospeso" (Suspended) */
-  bottom: 95px;
-  /* Above Navbar (~70-80px) */
+  /* Sale insieme alla navbar, altrimenti sui telefoni con home indicator
+     le si appoggerebbe sopra */
+  bottom: calc(95px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   margin: 0;

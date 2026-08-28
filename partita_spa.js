@@ -15,8 +15,12 @@ const dataInput = document.getElementById("dataPartita");
 const votiContainer = document.getElementById("votiContainer");
 const salvaPagellaBtn = document.getElementById("salvaPagella");
 
-const MINUTI_MIN = 1;
+/* Il minimo era 1: un giocatore schierato e mai entrato non era
+   rappresentabile, e uno 0 gia' salvato (i S.V.) tornava a video come 1'.
+   Il valore di partenza di una scheda nuova resta 1. */
+const MINUTI_MIN = 0;
 const MINUTI_MAX = 50;
+const MINUTI_DEFAULT = 1;
 
 /* Voto di partenza di ogni scheda. Era 1: salvando senza toccare gli
    slider si assegnava il minimo a tutta la formazione. */
@@ -219,6 +223,10 @@ function aggiornaOpzioniSelect() {
             }
         });
     });
+
+    // Gira a ogni cambio di select: e' il punto giusto per riallineare
+    // l'etichetta del bottone flottante allo stato del campo.
+    aggiornaStatoBottone();
 }
 
 function collegaSelect() {
@@ -228,6 +236,22 @@ function collegaSelect() {
         select.removeEventListener("change", aggiornaOpzioniSelect);
         select.addEventListener("change", aggiornaOpzioniSelect);
     });
+}
+
+/* Impronta della formazione a video, per capire se diverge da quella
+   scritta sul database. Serve al bottone flottante: una volta comparse le
+   pagelle salvava solo i voti, e le modifiche al campo andavano perse. */
+function firmaFormazione() {
+    const { formazione, panchina } = getFormazioneCorrente();
+    const slots = idsTitolari().map((id) => id + ":" + (formazione[id] || ""));
+    return moduloCorrente() + "|" + slots.join(",") + "|" + panchina.join(",");
+}
+
+/* Impronta dell'ultima formazione letta o scritta sul database */
+let formazioneSalvata = null;
+
+function formazioneCambiata() {
+    return formazioneSalvata !== null && firmaFormazione() !== formazioneSalvata;
 }
 
 /* Formazione salvata come mappa slot -> giocatore.
@@ -266,7 +290,8 @@ function creaPlayerCardPartita(nome, datiVoto) {
     const voto = isNaN(votoNumerico) ? VOTO_DEFAULT : votoNumerico;
 
     let minuti = parseInt(dati.minuti, 10);
-    if (isNaN(minuti) || minuti < MINUTI_MIN) minuti = MINUTI_MIN;
+    if (isNaN(minuti)) minuti = MINUTI_DEFAULT;
+    if (minuti < MINUTI_MIN) minuti = MINUTI_MIN;
     if (minuti > MINUTI_MAX) minuti = MINUTI_MAX;
 
     const commento = dati.commento || "";
@@ -547,6 +572,9 @@ async function caricaFormazione(data) {
 
     renderCampo(valori);
 
+    // Da qui in poi le modifiche al campo sono divergenze dal database
+    formazioneSalvata = firmaFormazione();
+
     const schierati = Object.values(valori).filter(Boolean);
     if (partita && schierati.length > 0) {
         const titolari = slots.map((id) => valori[id]).filter(Boolean);
@@ -559,13 +587,19 @@ async function caricaFormazione(data) {
     aggiornaStatoBottone();
 }
 
+/* Restituisce true solo se la scrittura e' andata a buon fine: il bottone
+   flottante deve poter interrompere la sequenza formazione -> pagella. */
 async function salvaFormazione() {
     const data = dataInput ? dataInput.value : "";
-    if (!data) return mostraAvviso("Inserisci una data", "error");
+    if (!data) {
+        mostraAvviso("Inserisci una data", "error");
+        return false;
+    }
 
     const { formazione, titolari, panchina } = getFormazioneCorrente();
     if (titolari.length === 0 && panchina.length === 0) {
-        return mostraAvviso("Schiera almeno un giocatore", "error");
+        mostraAvviso("Schiera almeno un giocatore", "error");
+        return false;
     }
 
     // I voti gia' inseriti non devono andare persi al risalvataggio
@@ -584,12 +618,15 @@ async function salvaFormazione() {
         });
     } catch (err) {
         console.error("Errore salvataggio formazione:", err);
-        return mostraAvviso("Errore nel salvataggio della formazione", "error");
+        mostraAvviso("Errore nel salvataggio della formazione", "error");
+        return false;
     }
 
+    formazioneSalvata = firmaFormazione();
     mostraCampiVoto(titolari, panchina, votiEsistenti);
     mostraAvviso("Formazione salvata");
     document.dispatchEvent(new Event("data-update"));
+    return true;
 }
 
 async function salvaPagella() {
@@ -667,6 +704,7 @@ if (dataInput) {
             caricaFormazione(dataInput.value);
         } else if (votiContainer) {
             votiContainer.innerHTML = "";
+            formazioneSalvata = null;
         }
     });
 }
@@ -687,12 +725,18 @@ if (selectModulo) {
 }
 
 /* Il bottone flottante cambia funzione a seconda dello stato:
-   senza pagelle a video salva la formazione, altrimenti i voti. */
+   senza pagelle a video salva la formazione, altrimenti i voti. Se il campo
+   e' stato ritoccato dopo la comparsa delle pagelle salva entrambe le cose:
+   prima faceva solo i voti e la formazione nuova spariva senza dirlo. */
 function aggiornaStatoBottone() {
     const txt = document.getElementById("salvaPagellaText");
     if (!txt || !votiContainer) return;
-    txt.textContent =
-        votiContainer.children.length === 0 ? "Salva Formazione" : "Salva Pagella";
+
+    if (votiContainer.children.length === 0) {
+        txt.textContent = "Salva Formazione";
+        return;
+    }
+    txt.textContent = formazioneCambiata() ? "Salva Tutto" : "Salva Pagella";
 }
 
 if (salvaPagellaBtn) {
@@ -701,6 +745,11 @@ if (salvaPagellaBtn) {
         if (votiContainer && votiContainer.children.length === 0) {
             await salvaFormazione();
         } else {
+            // Se la formazione non e' andata a buon fine ci si ferma: salvare
+            // i voti di una formazione mai scritta lascerebbe i due disallineati.
+            if (formazioneCambiata() && !(await salvaFormazione())) {
+                return aggiornaStatoBottone();
+            }
             await salvaPagella();
         }
         aggiornaStatoBottone();
@@ -722,6 +771,7 @@ quandoDatiPronti(() => {
     aggiornaStatoData();
     riempiModuli();
     renderCampo({});
+    formazioneSalvata = firmaFormazione();
     calcolaStatistichePartite();
     aggiornaStatoBottone();
 

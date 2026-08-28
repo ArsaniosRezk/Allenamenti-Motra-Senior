@@ -4,12 +4,12 @@
     "short_name": "Santa Maria",
     "description": "Allenamenti, formazioni e pagelle della squadra.",
     "lang": "it",
-    "start_url": "./index.html#stats",
+    "start_url": "./index.html?team=santa-maria#stats",
     "scope": "./",
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#0f172a",
-    "theme_color": "#1e3a8a",
+    "theme_color": "#1f2937",
     "icons": [
         {
             "src": "immagini/favicon.svg",

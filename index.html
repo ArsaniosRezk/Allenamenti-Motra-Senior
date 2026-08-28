@@ -5,10 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Gestione allenamenti, formazioni e pagelle della squadra." />
-  <!-- Valori neutri: applicaIdentitaSquadra() in utils.js li sostituisce
-       con quelli della squadra risolta. Cablare qui una squadra faceva
-       scaricare al sito dell'altra il manifest sbagliato prima che i
-       moduli venissero eseguiti. -->
+  <!-- Il colore e' lo stesso per tutte le squadre (TEMA_PREDEFINITO in
+       utils.js): se lo cambi, cambialo anche li' e nei manifest. -->
   <meta name="theme-color" content="#1f2937" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -18,10 +16,21 @@
 
   <link rel="icon" type="image/svg+xml" href="immagini/favicon.svg" />
   <link rel="apple-touch-icon" href="immagini/favicon.svg" />
+  <!-- Manifest neutro di proposito: e' applicaIdentitaSquadra() a metterci
+       quello della squadra risolta. Cablando qui una delle due squadre, il
+       sito dell'altra scaricava comunque prima il manifest sbagliato. -->
   <link rel="manifest" href="manifest.json" />
 
   <link rel="preconnect" href="https://www.gstatic.com" />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Inter stava in un @import dentro style.css, ma dopo una regola:
+       per le specifiche CSS l'@import in quella posizione viene ignorato
+       e il font non e' mai stato caricato. -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
 
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="colors.css" />

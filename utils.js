@@ -10,21 +10,20 @@
    A decidere quali squadre sono attive e' il DATABASE, non un
    elenco scritto qui: una squadra alla radice e' consultabile,
    una spostata sotto "archivio/" non lo e' piu'. Il blocco qui
-   sotto serve solo a dare nome e colori alle squadre che hanno
-   un sito dedicato; qualunque altra resta comunque raggiungibile
-   con ?team=<id> e riceve nome e colori predefiniti.
+   sotto serve solo a dare un nome curato e un manifest proprio
+   alle squadre che hanno un sito dedicato; qualunque altra resta
+   comunque raggiungibile con ?team=<id> e riceve nome e manifest
+   predefiniti. I colori invece sono gli stessi per tutte.
    ========================================================= */
 
 const PRESENTAZIONE = {
     "sant-antonio": {
         nome: "Motra Sant'Antonio",             // titolo pagina e nome della PWA
-        tema: "#1f2937",                        // colore barra browser (theme-color)
         manifest: "manifest-sant-antonio.json"  // manifest PWA dedicato
     },
 
     "santa-maria": {
         nome: "Motra Santa Maria",
-        tema: "#1e3a8a",
         manifest: "manifest-santa-maria.json"
     }
 };
@@ -32,7 +31,11 @@ const PRESENTAZIONE = {
 export const RAMO_ARCHIVIO = "archivio";
 
 const SQUADRA_DEFAULT = "santa-maria";
-const TEMA_PREDEFINITO = "#1f2937";  // usato dalle squadre senza sito dedicato
+/* Colore della barra del browser: uno solo per tutte le squadre. Una voce
+   di PRESENTAZIONE puo' sovrascriverlo con `tema`, ma oggi nessuna lo fa
+   e i due siti sono volutamente identici. Va tenuto allineato al
+   theme_color dei manifest e al <meta name="theme-color"> di index.html. */
+const TEMA_PREDEFINITO = "#1f2937";
 const MANIFEST_PREDEFINITO = "manifest.json";
 
 /* Mappa dominio -> squadra.

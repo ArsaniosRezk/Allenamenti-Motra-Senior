@@ -36,7 +36,12 @@ const SHELL = [
 const STATICI = ["./immagini/favicon.svg"];
 
 // Host esterni di cui vale la pena tenere una copia locale
-const CDN_CONSENTITI = ["cdnjs.cloudflare.com", "www.gstatic.com"];
+const CDN_CONSENTITI = [
+    "cdnjs.cloudflare.com",
+    "www.gstatic.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com"
+];
 
 // addAll fallisce in blocco se un solo file non risponde: meglio uno per uno
 function precarica(nomeCache, urls) {

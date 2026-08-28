@@ -73,6 +73,13 @@ python -m http.server 3000
 | `package.json` | Nessuna dipendenza: serve solo a dichiarare i moduli ES a Node |
 | `gestione-squadre.html` | Pagina di servizio, **esclusa dal repository** |
 
+`style.css` non carica il font: Inter arriva da un `<link>` in
+`index.html`. Stava in un `@import` messo dopo la prima regola, posizione
+in cui le specifiche CSS impongono al browser di ignorarlo — il font non è
+mai stato caricato. Il service worker tiene in cache anche
+`fonts.googleapis.com` e `fonts.gstatic.com`, come già faceva per gli altri
+CDN.
+
 Le quattro sezioni dell'app sono tutte già nel DOM e `router.js` mostra
 quella giusta in base all'hash. Questo fa funzionare il tasto Indietro del
 telefono, che altrimenti chiuderebbe l'app.
@@ -122,6 +129,13 @@ dice. Il controllo parte solo quando la squadra risulta senza dati, quindi
 nel caso normale non c'è nessuna lettura in più.
 
 ### Note sul formato
+
+Gli **allenamenti** hanno una chiave generata da Firebase e la data in un
+campo; le **partite** hanno la data come chiave. Per questo l'allenamento
+si cerca scorrendo il ramo: il confronto usa `dataEvento()`, non il campo
+`data` grezzo, così anche i record salvati senza data restano
+raggiungibili dal loro `timestamp`. Cercandoli per `data` non si trovavano
+mai e sceglierne la data nel calendario creava un doppione.
 
 `formazione` è la mappa posizione → giocatore ed è il formato corrente:
 conserva le posizioni anche quando uno slot resta vuoto. `titolari` e
@@ -210,6 +224,25 @@ giocatore.
 non entra nella media e non porta minuti. Anche i vecchi record salvati
 con un minuto vengono letti come zero.
 
+Lo slider dei minuti parte da **0**: un giocatore schierato ma mai entrato
+si può registrare con un voto e zero minuti, senza per forza marcarlo S.V.
+Prima il minimo era 1 e uno zero già salvato tornava a video come 1'.
+
+### Il bottone di salvataggio in Partita
+
+Il bottone grande in fondo cambia funzione da solo:
+
+| Cosa mostra | Cosa salva |
+|---|---|
+| **Salva Formazione** | non ci sono ancora pagelle a video: scrive campo, panchina e modulo |
+| **Salva Pagella** | pagelle a video e formazione già allineata al database: scrive solo i voti |
+| **Salva Tutto** | pagelle a video ma campo ritoccato dopo: scrive prima la formazione, poi i voti |
+
+Il terzo caso è il motivo del confronto: prima, una volta comparse le
+pagelle, il bottone salvava soltanto i voti e le modifiche al campo
+sparivano senza dirlo. L'iconcina dentro al campo salva sempre e solo la
+formazione.
+
 ### MV3
 
 Media degli ultimi `VOTI_MV3` voti **in ordine di data**, saltando i S.V.
@@ -280,12 +313,13 @@ qualunque formula basata su percentuali, ed è anche corretto.
 |---|---|---|
 | `0.05` | `allenamenti_spa.js` | passo dei bonus Atletica/Partitella (5%) |
 | `VOTO_DEFAULT` | `partita_spa.js`, `allenamenti_spa.js` | voto di partenza delle schede (6) |
-| `MINUTI_MIN` / `MINUTI_MAX` | `partita_spa.js` | estremi dello slider minuti (1 e 50) |
+| `MINUTI_MIN` / `MINUTI_MAX` | `partita_spa.js` | estremi dello slider minuti (0 e 50) |
+| `MINUTI_DEFAULT` | `partita_spa.js` | minuti di partenza di una scheda nuova (1) |
 | `moduli` | `partita_spa.js` | moduli disponibili e nomi dei ruoli: le `<option>` del menù le genera il codice da questa mappa |
 | soglie `6` / `7` / `8` | `statistiche.js`, `classeMedia` | dove cambia il colore delle celle |
 | `TIMEOUT_AVVIO` | `index.js` | quanto si aspetta il database prima di arrendersi (12 s) |
 | `min`/`max`/`step` degli slider voto | `partita_spa.js`, `allenamenti_spa.js` | scala 1-10 a passi di 0,25 |
-| `3000` | `utils.js` | durata in millisecondi degli avvisi a fondo schermo |
+| `3000` | `utils.js` | durata in millisecondi degli avvisi |
 | `VERSIONE` | `sw.js` | versione della cache del service worker |
 
 I colori delle fasce stanno in `colors.css`. Le tinte usate nelle tabelle
@@ -316,18 +350,24 @@ const SQUADRA_PER_HOST = {
 };
 ```
 
-### Nome e colori dei siti
+### Nome e manifest dei siti
 
 Il blocco `PRESENTAZIONE` in `utils.js` **non decide quali squadre
-esistono**: dà solo un nome curato e colori propri a chi ha un sito
+esistono**: dà solo un nome curato e un manifest proprio a chi ha un sito
 dedicato.
 
-| Chiave | Nome mostrato | Barra browser | Manifest |
-|---|---|---|---|
-| `santa-maria` | Motra Santa Maria | blu `#1e3a8a` | `manifest-santa-maria.json` |
-| `sant-antonio` | Motra Sant'Antonio | grigio `#1f2937` | `manifest-sant-antonio.json` |
+| Chiave | Nome mostrato | Manifest |
+|---|---|---|
+| `santa-maria` | Motra Santa Maria | `manifest-santa-maria.json` |
+| `sant-antonio` | Motra Sant'Antonio | `manifest-sant-antonio.json` |
 
 `santa-maria` è la squadra predefinita.
+
+**Il colore è uno solo per tutte le squadre**: `#1f2937`, definito da
+`TEMA_PREDEFINITO` in `utils.js` e ripetuto nel `theme_color` dei manifest
+e nel `<meta name="theme-color">` di `index.html`. Se lo cambi vanno
+aggiornati tutti e tre. Una voce di `PRESENTAZIONE` può ancora
+sovrascriverlo con `tema`, ma oggi nessuna lo fa.
 
 `index.html` dichiara di proposito il manifest **neutro** (`manifest.json`)
 e il tema predefinito: è `applicaIdentitaSquadra()` a sostituirli con
@@ -339,9 +379,13 @@ Ogni altra squadra alla radice del database resta consultabile con
 `?team=<id>` e riceve un nome ricavato dall'id — `senior` diventa
 "Motra Senior" — più il tema predefinito e `manifest.json`.
 
-Le due app installate sul telefono **condividono la stessa icona** e lo
-stesso colore di sfondo: a distinguerle sono il nome sotto l'icona e il
-colore della barra.
+Le due app installate sul telefono **condividono icona, colori e sfondo**:
+a distinguerle è soltanto il nome sotto l'icona.
+
+Ogni manifest dedicato porta la squadra nel proprio `start_url`
+(`./index.html?team=santa-maria#stats`). Serve a chi installa l'app da un
+indirizzo `?team=` invece che dal dominio dedicato: senza, l'app installata
+ripartiva dalla squadra predefinita.
 
 ### L'icona dell'app
 
@@ -387,8 +431,8 @@ propria squadra.
 ### Aggiungere una terza squadra
 
 1. Creala dalla pagina di gestione (crea il ramo sul database)
-2. Aggiungi una voce in `PRESENTAZIONE` con nome, tema e manifest
-3. Copia un manifest esistente cambiando `id`, `name`, `short_name`, `theme_color`
+2. Aggiungi una voce in `PRESENTAZIONE` con nome e manifest
+3. Copia un manifest esistente cambiando `id`, `name`, `short_name`, `start_url`
 4. Aggiungi il file alla lista `SHELL` in `sw.js`
 5. Aggiungi il dominio in `SQUADRA_PER_HOST`
 6. Crea il sito su Netlify e rinominalo

@@ -15,10 +15,6 @@ function nomeRotta() {
     return ROTTE[chiave] ? chiave : ROTTA_DEFAULT;
 }
 
-export function rottaCorrente() {
-    return nomeRotta();
-}
-
 function mostraRotta(chiave) {
     const rotta = ROTTE[chiave];
     if (!rotta) return;
@@ -59,6 +55,3 @@ export function initRouter() {
     mostraRotta(nomeRotta());
 }
 
-export function vaiA(chiave) {
-    if (ROTTE[chiave]) window.location.hash = `#${chiave}`;
-}
