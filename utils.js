@@ -46,6 +46,24 @@ const SQUADRA_PER_HOST = {
     "motra-santa-maria.netlify.app": "santa-maria"
 };
 
+/* Traduce un hostname in id squadra.
+
+   Netlify serve le anteprime su host derivati dal nome del sito:
+   "deploy-preview-42--motra-santa-maria.netlify.app" per le pull request e
+   "branch--motra-santa-maria.netlify.app" per i branch deploy. Cercando
+   l'host tal quale nella mappa non si trovava niente e ogni anteprima
+   ripiegava su SQUADRA_DEFAULT: l'anteprima del sito Sant'Antonio mostrava
+   i dati di Santa Maria. Il prefisso fino all'ultimo "--" va quindi tolto
+   prima di cercare. */
+function squadraDaHost(hostname) {
+    if (!hostname) return undefined;
+    if (SQUADRA_PER_HOST[hostname]) return SQUADRA_PER_HOST[hostname];
+
+    const separatore = hostname.lastIndexOf("--");
+    if (separatore === -1) return undefined;
+    return SQUADRA_PER_HOST[hostname.slice(separatore + 2)];
+}
+
 /* Gli id sono chiavi Firebase: minuscole, numeri e trattini */
 const idValido = (id) => typeof id === "string" && /^[a-z0-9][a-z0-9-]*$/.test(id);
 
@@ -80,7 +98,7 @@ function risolviSquadra() {
     const candidati = [
         new URLSearchParams(window.location.search).get("team"),
         window.TEAM_ID,
-        SQUADRA_PER_HOST[window.location.hostname],
+        squadraDaHost(window.location.hostname),
         SQUADRA_DEFAULT
     ];
 

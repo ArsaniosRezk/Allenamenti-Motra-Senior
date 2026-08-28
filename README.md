@@ -142,6 +142,35 @@ conserva le posizioni anche quando uno slot resta vuoto. `titolari` e
 `panchina` continuano a essere scritti per compatibilità, e le partite
 salvate prima di questo formato vengono lette dall'array posizionale.
 
+L'array posizionale va letto nell'ordine con cui fu scritto, che è
+`IDS_LEGACY` in `partita_spa.js`:
+
+```js
+["portiere", "dif1", "dif2", "dif3", "cen1", "cen2", "att"]
+```
+
+È **l'esatto contrario** dell'ordine piatto di `moduli["3-2-1"]`, che parte
+dall'attacco. Rileggendo quei record sull'ordine nuovo ogni partita di
+primavera 2025 usciva capovolta, con il portiere schierato da centravanti.
+Lo schema di allora (1 portiere, 3 difensori, 2 centrocampisti, 1 attaccante)
+è proprio il 3-2-1, quindi il modulo predefinito va bene.
+
+**Voti dei record vecchi.** Le prime pagelle salvavano solo `votoFinale`,
+senza `voto`; alcune voci di partita non hanno né l'uno né l'altro (erano
+convocati mai valutati). Chi legge un voto deve quindi ripiegare su
+`votoFinale` quando `voto` manca — dove ci sono entrambi vince `voto`, che è
+il valore grezzo senza bonus e quindi quello dello slider. Una voce senza
+nessuno dei due viene presentata come `S.V.`, che è già il nome che l'app dà
+a quello stato. Senza queste due regole gli slider ripartivano da 6.00 e il
+primo salvataggio sostituiva i voti veri con dei 6.
+
+**Chi non è più in rosa.** Il form dell'allenamento disegna una scheda per
+ogni giocatore della rosa *attuale*, e il salvataggio usa `.set()`, che
+rimpiazza l'intero nodo. I voti degli ex giocatori vengono quindi tenuti da
+parte al caricamento (`estraiFuoriRosa()`) e rimessi nel record al
+salvataggio: è ciò che rende vera la promessa fatta nella pagina di gestione.
+La pagina Partita ottiene lo stesso risultato con `nomiSelezionabili()`.
+
 La rosa può essere salvata come oggetto o come array: entrambe le forme
 vengono lette correttamente.
 
@@ -350,6 +379,13 @@ const SQUADRA_PER_HOST = {
 };
 ```
 
+Nella mappa vanno **solo i domini di produzione**. Le anteprime Netlify
+(`deploy-preview-42--motra-sant-antonio.netlify.app`, oppure
+`nome-branch--motra-santa-maria.netlify.app`) le riconosce `squadraDaHost()`,
+che toglie il prefisso fino all'ultimo `--` prima di cercare. Senza quel
+passaggio ogni anteprima ripiegava su `SQUADRA_DEFAULT`, e l'anteprima del
+sito Sant'Antonio mostrava i dati di Santa Maria.
+
 ### Nome e manifest dei siti
 
 Il blocco `PRESENTAZIONE` in `utils.js` **non decide quali squadre
@@ -474,17 +510,37 @@ scritta su misura per Firebase, cdnjs e lo script inline in `index.html`, e
 una CSP sbagliata rompe il sito in silenzio. Va provata su un deploy di
 anteprima prima di metterla.
 
+### Quante letture costa una schermata
+
+`index.js` è l'unico che legge gli elenchi completi: dopo ogni lettura emette
+`dati-ricaricati` con allenamenti e partite già in memoria, e `partita_spa.js`
+ci aggancia il riepilogo titolarità/minuti. Prima se li rileggeva per conto
+suo a ogni salvataggio, quindi ogni salvataggio scaricava due volte l'intero
+ramo `partite` e i due pezzi di schermata potevano mostrare stati diversi.
+
+Allo stesso modo `verificaSquadra()` chiede se un ramo esiste via REST con
+`?shallow=true`: con l'SDK la stessa domanda costava il download dell'intera
+squadra. E la ricerca dell'allenamento per data non viene più ripetuta al
+salvataggio se è già stata fatta al cambio data.
+
 ### Cose da sistemare, prima o poi
 
-- `immagini/favicon.svg` pesa circa 330 KB (export da Illustrator). Vale la
-  pena passarlo in SVGO e affiancargli un PNG 512x512 per iOS, che non
-  supporta le icone SVG.
+- `immagini/favicon.svg` pesa circa 330 KB (export da Illustrator, 1123
+  tracciati, nessun raster). Vale la pena passarlo in SVGO e affiancargli un
+  PNG 512x512 per iOS, che non supporta le icone SVG. Ridurne la precisione a
+  mano è un rischio grafico: meglio uno strumento.
 - L'SDK Firebase è la versione `compat` 9.6.1, deprecata. Funziona, ma
   prima o poi conviene passare alla v10 modulare.
 - Offline l'app si apre ma resta senza dati: il database ha bisogno della
   rete. Le letture di Firebase in quel caso non falliscono, restano appese:
   per questo l'avvio ha un `TIMEOUT_AVVIO`, altrimenti lo scheletro di
   caricamento non sparirebbe mai.
+- La ricerca dell'allenamento per data scorre tutto il ramo `allenamenti`.
+  Una query `orderByChild("data")` sarebbe più economica ma perderebbe i
+  record salvati senza `data`, che oggi si trovano tramite `dataEvento()`.
+- Le partite salvate con più di 10 in panchina non hanno abbastanza select a
+  video: adesso l'app lo dice con un avviso invece di troncare in silenzio,
+  ma i posti restano 10.
 
 ### Backup
 

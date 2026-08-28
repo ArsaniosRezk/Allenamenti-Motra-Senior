@@ -62,7 +62,7 @@ function getNomeBase(fullName) {
 }
 
 // 3. Logica "smart" per calcolare l'abbreviazione piu corta ma univoca
-function getUniqueAbbreviation(targetFullName, mode = "formazione") {
+function getUniqueAbbreviation(targetFullName) {
   const targetBase = getNomeBase(targetFullName);
   const [, targetSurname] = separaNome(targetFullName);
 
@@ -78,7 +78,7 @@ function getUniqueAbbreviation(targetFullName, mode = "formazione") {
 
   // Livello 1: la sola radice del nome e' gia' univoca
   const collisioni = others.filter((o) => o.base === targetBase);
-  if (mode === "formazione" && collisioni.length === 0) return targetBase;
+  if (collisioni.length === 0) return targetBase;
 
   // Livello 2: radice + iniziale del cognome
   const livello2 = `${targetBase} ${targetSurname.charAt(0)}`;
@@ -107,5 +107,5 @@ export function abbreviaNome(nome) {
 export function abbreviaNomeFormazione(nome) {
   if (!nome) return "";
   if (nome === "Squadra") return "Squadra";
-  return getUniqueAbbreviation(nome, "formazione");
+  return getUniqueAbbreviation(nome);
 }

@@ -15,6 +15,20 @@ const dataInput = document.getElementById("dataAllenamento");
 // Id del record aperto: se valorizzato si aggiorna, altrimenti se ne crea uno nuovo
 let allenamentoEsistenteId = null;
 
+/* Voti del record aperto per i giocatori che NON sono piu' in rosa.
+   Il form disegna una scheda per ogni giocatore della rosa attuale, quindi
+   di un ex giocatore non c'e' nulla a video da rileggere: senza tenerli da
+   parte qui, il .set() del salvataggio li cancellava dal database. E' la
+   stessa garanzia che la pagina Partita da' con nomiSelezionabili(), e
+   quella che la pagina di gestione promette quando si toglie qualcuno
+   dalla rosa. */
+let votiFuoriRosa = {};
+
+/* Data per cui il record e' gia' stato cercato sul database (anche quando
+   non e' stato trovato nulla): evita la seconda lettura in fase di
+   salvataggio, che ripeteva pari pari quella fatta al cambio data. */
+let dataRisolta = null;
+
 /* Voto di partenza di ogni scheda. Era 1: salvando senza toccare gli
    slider si assegnava il minimo a tutta la rosa. */
 const VOTO_DEFAULT = 6;
@@ -126,14 +140,18 @@ function ciclaToggle(toggle) {
     aggiornaToggleVisual(toggle);
 }
 
-// Delegato: sopravvive al re-render della lista giocatori
+// Delegato: sopravvive al re-render della lista giocatori.
+// e.target puo' essere il documento stesso (evento senza elemento a fuoco):
+// li' closest() non esiste e l'handler moriva con un TypeError.
 document.addEventListener("click", (e) => {
+    if (!(e.target instanceof Element)) return;
     const toggle = e.target.closest("#lista-giocatori .toggle-3");
     if (toggle) ciclaToggle(toggle);
 });
 
 document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
+    if (!(e.target instanceof Element)) return;
     const toggle = e.target.closest("#lista-giocatori .toggle-3");
     if (!toggle) return;
     e.preventDefault();
@@ -153,6 +171,16 @@ function impostaPresenza(index, presente) {
     if (body) body.style.display = presente ? "flex" : "none";
     if (footer) footer.style.display = presente ? "block" : "none";
     if (card) card.classList.toggle("disabled", !presente);
+}
+
+/* I record piu' vecchi salvavano solo `votoFinale`, senza `voto`: leggendo
+   solo `voto` tornavano tutti a VOTO_DEFAULT e il primo salvataggio
+   sostituiva i voti veri con dei 6. Su quei record non esistono bonus,
+   quindi `votoFinale` E' il voto grezzo. Dove ci sono entrambi vince
+   `voto`, che e' il valore senza bonus e quindi quello dello slider. */
+function votoDiPartenza(dati) {
+    if (!dati) return VOTO_DEFAULT;
+    return dati.voto !== undefined ? dati.voto : dati.votoFinale;
 }
 
 function impostaVoto(index, voto) {
@@ -214,6 +242,18 @@ async function trovaAllenamentoPerData(data) {
     return { id: trovati[0][0], dati: trovati[0][1] };
 }
 
+/* Voti del record che appartengono a giocatori non piu' in rosa. Il form
+   non ha una scheda per loro, quindi e' l'unico posto da cui possono
+   sopravvivere al .set() del salvataggio. */
+function estraiFuoriRosa(dati) {
+    const inRosa = new Set(listaGiocatori);
+    const fuori = {};
+    Object.entries((dati && dati.giocatori) || {}).forEach(([nome, voto]) => {
+        if (!inRosa.has(nome)) fuori[nome] = voto;
+    });
+    return fuori;
+}
+
 /* Cambiando data velocemente le letture possono tornare fuori ordine:
    solo l'ultima richiesta ha il diritto di riempire il form. Senza questo
    controllo la risposta vecchia lasciava allenamentoEsistenteId puntato al
@@ -226,6 +266,8 @@ async function caricaAllenamento(data) {
     const richiesta = ++letturaCorrente;
     resetForm();
     allenamentoEsistenteId = null;
+    votiFuoriRosa = {};
+    dataRisolta = null;
 
     let trovato = null;
     try {
@@ -240,23 +282,35 @@ async function caricaAllenamento(data) {
 
     // Nel frattempo l'utente ha scelto un'altra data: questa risposta e' vecchia
     if (richiesta !== letturaCorrente) return;
+
+    // Anche "nessun record per questa data" e' un risultato: registrarlo
+    // risparmia la rilettura in fase di salvataggio.
+    dataRisolta = data;
     if (!trovato) return;
 
     allenamentoEsistenteId = trovato.id;
     const giocatoriDati = trovato.dati.giocatori || {};
+
+    votiFuoriRosa = estraiFuoriRosa(trovato.dati);
 
     listaGiocatori.forEach((nome, index) => {
         const dati = giocatoriDati[nome];
         if (!dati) return impostaPresenza(index, false);
 
         impostaPresenza(index, true);
-        impostaVoto(index, dati.voto);
+        impostaVoto(index, votoDiPartenza(dati));
         impostaToggle(index, "bonusAtletica", dati.bonusAtletica);
         impostaToggle(index, "bonusPartitella", dati.bonusPartitella);
         impostaCommento(index, dati.commento);
     });
 
-    mostraAvviso("Allenamento esistente caricato");
+    const quantiFuori = Object.keys(votiFuoriRosa).length;
+    mostraAvviso(
+        quantiFuori === 0
+            ? "Allenamento esistente caricato"
+            : "Allenamento caricato (" + quantiFuori +
+              " fuori rosa conservati)"
+    );
 }
 
 /* =========================================================
@@ -267,7 +321,10 @@ function raccogliAllenamento(data) {
         tipo: "allenamento",
         data,
         timestamp: new Date().toISOString(),
-        giocatori: {}
+        // Si riparte dai voti di chi non e' piu' in rosa: il salvataggio usa
+        // .set(), che rimpiazza l'intero nodo, e questi non hanno una scheda
+        // a video da cui essere riletti.
+        giocatori: Object.assign({}, votiFuoriRosa)
     };
 
     listaGiocatori.forEach((nome, index) => {
@@ -306,6 +363,17 @@ function raccogliAllenamento(data) {
     return allenamento;
 }
 
+/* Quanti giocatori della rosa sono spuntati come presenti. Il controllo
+   "non hai messo niente" deve guardare il form, non il record: da quando
+   i voti dei fuori rosa vengono riportati dentro, contare le chiavi del
+   record avrebbe lasciato passare un salvataggio con zero schede compilate. */
+function contaPresenti() {
+    return listaGiocatori.reduce((totale, _, index) => {
+        const cb = document.querySelector('.cb-presente[data-index="' + index + '"]');
+        return totale + (cb && cb.checked ? 1 : 0);
+    }, 0);
+}
+
 /* Finche' non c'e' una data non si mostra la lista giocatori:
    il campo data si evidenzia e al suo posto compare un invito discreto. */
 function aggiornaStatoData() {
@@ -317,8 +385,14 @@ if (form) {
     if (dataInput) {
         dataInput.addEventListener("change", (e) => {
             aggiornaStatoData();
-            if (e.target.value) caricaAllenamento(e.target.value);
-            else resetForm();
+            if (e.target.value) {
+                caricaAllenamento(e.target.value);
+            } else {
+                resetForm();
+                allenamentoEsistenteId = null;
+                votiFuoriRosa = {};
+                dataRisolta = null;
+            }
         });
     }
 
@@ -328,18 +402,29 @@ if (form) {
         const data = dataInput ? dataInput.value : "";
         if (!data) return mostraAvviso("Inserisci una data", "error");
 
-        const allenamento = raccogliAllenamento(data);
-        if (Object.keys(allenamento.giocatori).length === 0) {
+        if (contaPresenti() === 0) {
             return mostraAvviso("Nessun giocatore presente con un voto", "error");
         }
 
         try {
-            // Se il record non e' gia' aperto si ricontrolla per data:
-            // evita di creare un duplicato salvando due volte di seguito.
-            if (!allenamentoEsistenteId) {
+            // Se il record non e' gia' aperto si ricontrolla per data: evita
+            // di creare un duplicato salvando due volte di seguito. Quando
+            // pero' la ricerca per questa data e' gia' stata fatta al cambio
+            // data, ripeterla qui era solo un secondo scaricamento dell'intero
+            // ramo allenamenti per riottenere la stessa risposta.
+            //
+            // Va fatto PRIMA di comporre il record: se il caricamento iniziale
+            // era fallito, e' qui che si scopre chi era gia' salvato e non e'
+            // piu' in rosa. Comporlo prima significava sovrascriverlo.
+            if (!allenamentoEsistenteId && dataRisolta !== data) {
                 const trovato = await trovaAllenamentoPerData(data);
-                if (trovato) allenamentoEsistenteId = trovato.id;
+                if (trovato) {
+                    allenamentoEsistenteId = trovato.id;
+                    votiFuoriRosa = estraiFuoriRosa(trovato.dati);
+                }
             }
+
+            const allenamento = raccogliAllenamento(data);
 
             if (allenamentoEsistenteId) {
                 await window.firebaseDB
@@ -355,6 +440,9 @@ if (form) {
                 mostraAvviso("Allenamento salvato");
             }
 
+            // La data ora e' risolta sul record appena scritto: un secondo
+            // salvataggio aggiorna senza rileggere e senza duplicare.
+            dataRisolta = data;
             document.dispatchEvent(new Event("data-update"));
         } catch (err) {
             console.error("Errore nel salvataggio:", err);

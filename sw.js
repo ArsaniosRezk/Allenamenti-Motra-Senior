@@ -8,7 +8,7 @@
    - richieste al Realtime Database -> mai intercettate.
 */
 
-const VERSIONE = "v4";  // v4: icona ridisegnata, va invalidata la cache statica
+const VERSIONE = "v5";  // v5: chiave di cache normalizzata per le navigazioni
 const CACHE_SHELL = "motra-shell-" + VERSIONE;
 const CACHE_STATICI = "motra-statici-" + VERSIONE;
 const CACHE_ATTUALI = [CACHE_SHELL, CACHE_STATICI];
@@ -87,14 +87,26 @@ function isStatico(url) {
     return /\.(svg|png|jpe?g|webp|ico|woff2?|ttf|eot)$/i.test(url.pathname);
 }
 
+/* Chiave con cui una richiesta viene messa in cache.
+
+   Le navigazioni sono tutte la stessa pagina: "?team=santa-maria#partita" e
+   "#stats" sono index.html. Usando la richiesta grezza, ogni combinazione di
+   query e hash diventava una voce a se' e la cache cresceva senza limite
+   fino al cambio di VERSIONE. Normalizzarle a index.html tiene una copia
+   sola, che e' esattamente quella che serve al fallback offline. */
+function chiaveCache(request) {
+    return request.mode === "navigate" ? "./index.html" : request;
+}
+
 async function networkFirst(request, nomeCache) {
     const cache = await caches.open(nomeCache);
+    const chiave = chiaveCache(request);
     try {
         const risposta = await fetch(request);
-        if (risposta && risposta.ok) cache.put(request, risposta.clone());
+        if (risposta && risposta.ok) cache.put(chiave, risposta.clone());
         return risposta;
     } catch (err) {
-        const salvata = await cache.match(request);
+        const salvata = await cache.match(chiave);
         if (salvata) return salvata;
         // Navigazione offline verso una rotta qualsiasi: si serve la shell
         if (request.mode === "navigate") {

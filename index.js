@@ -168,7 +168,13 @@ function creaEvento(ev, tipo) {
     const table = document.createElement("table");
     table.className = "mini-tabella";
 
-    nomiEvento(ev, tipo, rosa).forEach((nome, index) => {
+    // `_attesi` lo annota calcolaStatistiche: sono i nomi a cui quell'evento
+    // ha contato un "disponibile". Usarlo qui e' l'unico modo perche' la
+    // cronologia dica la stessa cosa delle statistiche: chi si e' aggregato
+    // dopo non risulta piu' "assente" a eventi che non poteva giocare.
+    const daMostrare = ev._attesi || nomiEvento(ev, tipo, rosa);
+
+    daMostrare.forEach((nome, index) => {
       const tr = document.createElement("tr");
       tr.className = index % 2 === 0 ? "riga-pari" : "riga-dispari";
 
@@ -501,6 +507,10 @@ function chiudiScheda() {
 }
 
 document.addEventListener("click", (e) => {
+  // e.target puo' essere il documento stesso (click senza elemento a fuoco):
+  // li' closest() non esiste e l'handler moriva con un TypeError.
+  if (!(e.target instanceof Element)) return;
+
   const btnGiocatore = e.target.closest(".btn-dettaglio-giocatore");
   if (btnGiocatore) return apriSchedaGiocatore(btnGiocatore.dataset.nome);
 
@@ -552,6 +562,16 @@ function caricaDati() {
 
       renderStorico();
       renderStatistiche();
+
+      /* Gli altri moduli hanno bisogno degli stessi dati: senza questo
+         evento partita_spa.js si riscaricava per conto suo l'intero ramo
+         partite a ogni salvataggio, raddoppiando il traffico e potendo
+         leggere uno stato diverso da quello appena disegnato qui. */
+      document.dispatchEvent(
+        new CustomEvent("dati-ricaricati", {
+          detail: { allenamenti: arrayAllenamenti, partite: arrayPartite }
+        })
+      );
     })
     .catch((err) => {
       console.error("Errore caricamento dati:", err);
@@ -621,6 +641,29 @@ function squadraSenzaDati() {
   );
 }
 
+/* C'e' qualcosa sotto questo percorso?
+
+   Con l'SDK la domanda costava il download dell'INTERA squadra: per sapere
+   se un ramo esiste si scaricavano rosa, allenamenti e partite. La REST con
+   ?shallow=true risponde con le sole chiavi di primo livello. Se non e'
+   raggiungibile si ripiega sull'SDK, che almeno da' la risposta giusta. */
+async function ramoEsiste(percorso) {
+  const app = window.firebaseDB && window.firebaseDB.app;
+  const base = app && app.options && app.options.databaseURL;
+  if (base) {
+    try {
+      const risposta = await fetch(
+        base.replace(/\/$/, "") + "/" + percorso + ".json?shallow=true"
+      );
+      if (risposta.ok) return (await risposta.json()) != null;
+    } catch (err) {
+      console.warn("Lettura shallow non riuscita per", percorso, err);
+    }
+  }
+  const snap = await window.firebaseDB.ref(percorso).once("value");
+  return snap.val() != null;
+}
+
 function mostraAvvisoSquadra(titolo, testo) {
   const banner = document.getElementById("avviso-squadra");
   if (!banner) return;
@@ -639,12 +682,10 @@ async function verificaSquadra() {
   let archiviata = false;
   let esiste = false;
   try {
-    const [snapArchivio, snapRamo] = await Promise.all([
-      window.firebaseDB.ref(RAMO_ARCHIVIO + "/" + ID_SQUADRA).once("value"),
-      window.firebaseDB.ref(ID_SQUADRA).once("value")
+    [archiviata, esiste] = await Promise.all([
+      ramoEsiste(RAMO_ARCHIVIO + "/" + ID_SQUADRA),
+      ramoEsiste(ID_SQUADRA)
     ]);
-    archiviata = snapArchivio.val() != null;
-    esiste = snapRamo.val() != null;
   } catch (err) {
     console.error("Verifica squadra non riuscita:", err);
     return;
@@ -722,6 +763,9 @@ async function avviaApp() {
 
 avviaApp();
 
-document.addEventListener("data-update", () => {
-  caricaDati();
+document.addEventListener("data-update", async () => {
+  await caricaDati();
+  // Cancellando l'ultimo evento la squadra puo' diventare vuota: senza
+  // questa seconda verifica il banner compariva solo ricaricando la pagina.
+  await verificaSquadra();
 });

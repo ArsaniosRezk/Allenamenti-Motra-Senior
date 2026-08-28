@@ -58,9 +58,30 @@ const moduli = {
 const MODULO_DEFAULT = "3-2-1";
 const idsPanchina = Array.from({ length: 10 }, (_, i) => "p" + (i + 1));
 
-/* Identificatore sicuro da usare negli attributi id="" */
+/* Ordine con cui le partite di primavera 2025 hanno scritto l'array
+   `titolari`, preso dal sorgente di allora (formazione.js, poi partite.js:
+   `const ids = ["portiere","dif1","dif2","dif3","cen1","cen2","att", ...]`
+   e `titolari = ids.slice(0, 7)`).
+
+   E' l'ESATTO CONTRARIO dell'ordine piatto di moduli["3-2-1"], che parte
+   dall'attacco. Rileggendo quei record posizione per posizione sull'ordine
+   nuovo, ogni partita vecchia usciva con la formazione capovolta: il
+   portiere schierato da centravanti e viceversa.
+
+   Lo schema di allora (1 portiere, 3 difensori, 2 centrocampisti, 1
+   attaccante) e' proprio il 3-2-1, quindi MODULO_DEFAULT va bene. */
+const IDS_LEGACY = ["portiere", "dif1", "dif2", "dif3", "cen1", "cen2", "att"];
+
+/* Identificatore sicuro da usare negli attributi id="".
+   Ogni carattere non alfanumerico diventa "_<codice>_" invece di un "_"
+   secco: cosi' la trasformazione resta iniettiva e due nomi che
+   differiscono solo per un apostrofo o un trattino non si contendono
+   lo stesso id. */
 function slug(nome) {
-    return String(nome).replace(/[^a-zA-Z0-9]+/g, "_");
+    return String(nome).replace(
+        /[^a-zA-Z0-9]/g,
+        (c) => "_" + c.charCodeAt(0) + "_"
+    );
 }
 
 /* Le opzioni del <select> le genera la mappa `moduli`: aggiungerne uno
@@ -284,9 +305,32 @@ function getFormazioneCorrente() {
 function creaPlayerCardPartita(nome, datiVoto) {
     const dati = datiVoto || {};
     const isSquadra = nome === "Squadra";
-    const isSV = dati.voto === "S.V." || dati.votoFinale === "S.V.";
 
-    const votoNumerico = parseFloat(dati.voto);
+    /* Una voce che esiste sul record ma non ha ne' voto ne' S.V. e' un
+       convocato mai valutato: nei dati vecchi sono 21, tutte con zero
+       minuti e nessun commento. Nell'app quello stato ha gia' un nome ed
+       e' S.V. ("presente ma non sceso in campo"), quindi si presenta cosi'.
+       Trattarla come una scheda vuota faceva partire lo slider da 6.00 e
+       bastava un "Salva Pagella" per trasformare quel 6 di comodo in un
+       voto vero, mai assegnato da nessuno.
+
+       Attenzione a `datiVoto` indefinito: li' la voce non esiste proprio
+       (giocatore schierato ora e ancora da votare) e la scheda deve
+       partire normale, non gia' segnata S.V. */
+    const nonValutato =
+        Boolean(datiVoto) &&
+        dati.voto === undefined &&
+        dati.votoFinale === undefined;
+
+    const isSV =
+        dati.voto === "S.V." || dati.votoFinale === "S.V." || nonValutato;
+
+    /* Come per gli allenamenti: un record vecchio puo' avere solo
+       `votoFinale`. Dove ci sono entrambi vince `voto`, che e' il valore
+       grezzo senza bonus e quindi quello dello slider. */
+    const votoNumerico = parseFloat(
+        dati.voto !== undefined ? dati.voto : dati.votoFinale
+    );
     const voto = isNaN(votoNumerico) ? VOTO_DEFAULT : votoNumerico;
 
     let minuti = parseInt(dati.minuti, 10);
@@ -399,6 +443,7 @@ function leggiVotiDalDOM() {
    ========================================================= */
 document.addEventListener("input", (e) => {
     const target = e.target;
+    if (!(target instanceof Element)) return;
 
     if (
         target.classList.contains("input-voto-slider") &&
@@ -415,6 +460,7 @@ document.addEventListener("input", (e) => {
 });
 
 document.addEventListener("change", (e) => {
+    if (!(e.target instanceof Element)) return;
     if (!e.target.classList.contains("cb-sv")) return;
 
     const attivo = e.target.checked;
@@ -491,32 +537,30 @@ function mostraStatistichePartite(stats) {
     votiContainer.parentNode.insertBefore(div, votiContainer);
 }
 
-async function calcolaStatistichePartite() {
-    try {
-        const snap = await window.firebaseDB.ref(ID_SQUADRA + "/partite").once("value");
-        const partite = snap.val() || {};
-        const stats = {};
-        const rec = (nome) => (stats[nome] = stats[nome] || { titolare: 0, minuti: 0 });
+/* Calcola il riepilogo su una lista di partite gia' in memoria.
+   index.js le ha appena lette per le statistiche: rileggerle da capo
+   significava un secondo scaricamento dell'intero ramo a ogni salvataggio,
+   con il rischio di mostrare uno stato diverso da quello appena disegnato. */
+function riepilogoDaPartite(partite) {
+    const stats = {};
+    const rec = (nome) => (stats[nome] = stats[nome] || { titolare: 0, minuti: 0 });
 
-        Object.values(partite).forEach((partita) => {
-            if (!partita.giocatori) return;
+    partite.forEach((partita) => {
+        if (!partita.giocatori) return;
 
-            const titolari = partita.formazione
-                ? Object.values(partita.formazione)
-                : partita.titolari || [];
-            titolari.forEach((nome) => rec(nome).titolare++);
+        const titolari = partita.formazione
+            ? Object.values(partita.formazione)
+            : partita.titolari || [];
+        titolari.forEach((nome) => rec(nome).titolare++);
 
-            Object.entries(partita.giocatori).forEach(([nome, dati]) => {
-                const sv = dati.voto === "S.V." || dati.votoFinale === "S.V.";
-                if (sv) return; // senza voto, quindi senza minuti
-                rec(nome).minuti += Number(dati.minuti) || 0;
-            });
+        Object.entries(partita.giocatori).forEach(([nome, dati]) => {
+            const sv = dati.voto === "S.V." || dati.votoFinale === "S.V.";
+            if (sv) return; // senza voto, quindi senza minuti
+            rec(nome).minuti += Number(dati.minuti) || 0;
         });
+    });
 
-        mostraStatistichePartite(stats);
-    } catch (err) {
-        console.error("Errore calcolo statistiche partite:", err);
-    }
+    return stats;
 }
 
 /* =========================================================
@@ -560,15 +604,30 @@ async function caricaFormazione(data) {
             if (partita.formazione[id]) valori[id] = partita.formazione[id];
         });
     } else if (partita && Array.isArray(partita.titolari)) {
-        // Formato vecchio: array posizionale
+        // Formato vecchio: array posizionale, nell'ordine di IDS_LEGACY
         partita.titolari.forEach((nome, i) => {
-            if (slots[i]) valori[slots[i]] = nome;
+            const id = IDS_LEGACY[i];
+            if (id && valori[id] !== undefined) valori[id] = nome;
         });
     }
 
-    (partita && partita.panchina ? partita.panchina : []).forEach((nome, i) => {
+    const panchinaSalvata =
+        partita && Array.isArray(partita.panchina) ? partita.panchina : [];
+    panchinaSalvata.forEach((nome, i) => {
         if (idsPanchina[i]) valori[idsPanchina[i]] = nome;
     });
+
+    /* La panchina a video ha 10 posti: se il record ne contiene di piu',
+       gli altri non hanno una select in cui finire. Prima sparivano in
+       silenzio e il salvataggio successivo riscriveva la lista accorciata. */
+    const esclusi = panchinaSalvata.slice(idsPanchina.length).filter(Boolean);
+    if (esclusi.length > 0) {
+        mostraAvviso(
+            "Panchina piu' lunga di " + idsPanchina.length + " posti: " +
+            esclusi.join(", ") + " non e' a video. Salvando andrebbe perso.",
+            "warning"
+        );
+    }
 
     renderCampo(valori);
 
@@ -772,12 +831,17 @@ quandoDatiPronti(() => {
     riempiModuli();
     renderCampo({});
     formazioneSalvata = firmaFormazione();
-    calcolaStatistichePartite();
+    // Il riepilogo lo riempie l'evento "dati-ricaricati", che index.js
+    // emette appena finita la lettura iniziale.
     aggiornaStatoBottone();
 
     if (dataInput && dataInput.value) caricaFormazione(dataInput.value);
 });
 
-// Il riepilogo titolarita'/minuti deve seguire i salvataggi, non restare
-// fermo ai dati letti all'apertura della pagina.
-document.addEventListener("data-update", () => calcolaStatistichePartite());
+/* Il riepilogo titolarita'/minuti deve seguire i salvataggi, non restare
+   fermo ai dati letti all'apertura della pagina. I dati arrivano gia' letti
+   da index.js: nessuna lettura in piu'. */
+document.addEventListener("dati-ricaricati", (e) => {
+    const partite = e.detail && e.detail.partite;
+    if (partite) mostraStatistichePartite(riepilogoDaPartite(partite));
+});

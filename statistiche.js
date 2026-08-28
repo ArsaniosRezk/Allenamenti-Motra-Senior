@@ -28,6 +28,17 @@ export const VOTI_MV3 = 3;
 /* =========================================================
    HELPER SUGLI EVENTI
    ========================================================= */
+/* Data dell'evento come "YYYY-MM-DD".
+
+   Il fallback sul timestamp e' in UTC, ed e' DELIBERATO: non convertirlo al
+   fuso locale. Sembra un bug ma non lo e'. L'Italia e' avanti di 1-2 ore su
+   UTC, quindi la data UTC cambia solo fra l'una e le due di notte: proprio
+   la finestra in cui si salva la pagella di un allenamento serale appena
+   finito. Il record senza data sul database (timestamp 2025-04-14T22:52Z,
+   cioe' le 00:52 del 15 in Italia) e' l'allenamento del 14, e in UTC risulta
+   correttamente del 14; convertendolo al fuso locale diventerebbe del 15.
+   Restano sbagliati i salvataggi fatti dopo le due di notte, ma da un
+   timestamp non si puo' fare di meglio. */
 export function dataEvento(ev) {
   if (ev.data) return ev.data;
   const t = new Date(ev.timestamp);
@@ -58,6 +69,9 @@ export function estraiVoto(dati) {
 /* Nomi da mostrare nel dettaglio di UN evento: la rosa attuale piu' i
    giocatori che compaiono in quell'evento pur non essendo piu' in rosa
    (altrimenti le loro presenze sparirebbero dalla cronologia).
+
+   E' la rete di sicurezza per gli eventi non passati dal calcolo: la
+   cronologia usa `ev._attesi`, che sa anche chi non era ancora arrivato.
    Per il CALCOLO serve invece nomiStorici: vedi la nota li' sotto. */
 export function nomiEvento(ev, tipo, rosa) {
   const base = tipo === "allenamento" ? [...rosa] : [...rosa, "Squadra"];
@@ -112,7 +126,14 @@ export function nuovoRecord() {
    ---------------------------------------------------------
    Gli eventi vanno passati in ordine CRESCENTE (dal piu' vecchio):
    serve sia per le frecce di miglioramento sia per l'MV3.
-   Come effetto collaterale annota su ogni evento `_frecce`.
+
+   Come effetto collaterale annota su ogni evento due cose:
+   - `_frecce`: chi e' migliorato o peggiorato rispetto al voto precedente;
+   - `_attesi`: chi era gia' in forza a quell'evento, cioe' esattamente i
+     nomi a cui e' stato contato un "disponibile". La cronologia mostra
+     questo elenco invece della rosa intera: prima marcava "assente" anche
+     chi si e' aggregato mesi dopo, dicendo il contrario di quello che il
+     calcolo faceva un attimo prima.
    ========================================================= */
 export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa) {
   const statsAll = {};
@@ -137,13 +158,17 @@ export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa)
 
   allenamentiCrescenti.forEach((ev) => {
     ev._frecce = {};
+    ev._attesi = [];
     nomiAll.forEach((nome) => {
       if (nome === "Squadra") return;
       const r = rec(statsAll, nome);
       const dati = ev.giocatori && ev.giocatori[nome];
 
       if (dati) r.iniziato = true;
-      if (r.iniziato) r.disponibili++;
+      if (r.iniziato) {
+        r.disponibili++;
+        ev._attesi.push(nome);
+      }
       if (!dati) return;
 
       r.presenze++;
@@ -172,6 +197,7 @@ export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa)
 
   partiteCrescenti.forEach((ev) => {
     ev._frecce = {};
+    ev._attesi = [];
     // Una partita con la sola formazione salvata non produce statistiche
     if (!ev.giocatori || Object.keys(ev.giocatori).length === 0) return;
 
@@ -180,7 +206,10 @@ export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa)
       const dati = ev.giocatori[nome];
 
       if (dati) r.iniziato = true;
-      if (r.iniziato) r.disponibili++;
+      if (r.iniziato) {
+        r.disponibili++;
+        ev._attesi.push(nome);
+      }
       if (!dati) return;
 
       r.presenze++;
