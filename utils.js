@@ -31,8 +31,8 @@ const PRESENTAZIONE = {
 
 export const RAMO_ARCHIVIO = "archivio";
 
-const SQUADRA_DEFAULT = "sant-antonio";
-const TEMA_PREDEFINITO = "#1f2937";
+const SQUADRA_DEFAULT = "santa-maria";
+const TEMA_PREDEFINITO = "#1f2937";  // usato dalle squadre senza sito dedicato
 const MANIFEST_PREDEFINITO = "manifest.json";
 
 /* Mappa dominio -> squadra.

@@ -113,8 +113,12 @@ Ogni altra squadra alla radice del database resta consultabile con
 `?team=<id>` e riceve un nome ricavato dall'id (`senior` diventa
 "Motra Senior"), il tema predefinito e `manifest.json`.
 
-`sant-antonio` e' la squadra predefinita: e' la sua che compare aprendo il
+`santa-maria` è la squadra predefinita: è la sua che compare aprendo il
 sito da un dominio non elencato nella mappa qui sotto.
+
+Le due app installate condividono **la stessa icona** e lo stesso colore di
+sfondo: a distinguerle sono il nome sotto l'icona e il colore della barra.
+`test-manifest` verifica che resti così.
 
 ### 2. Dire a ogni sito qual è la sua squadra
 
