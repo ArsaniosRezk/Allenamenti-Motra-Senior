@@ -8,7 +8,7 @@
    - richieste al Realtime Database -> mai intercettate.
 */
 
-const VERSIONE = "v3";
+const VERSIONE = "v4";  // v4: icona ridisegnata, va invalidata la cache statica
 const CACHE_SHELL = "motra-shell-" + VERSIONE;
 const CACHE_STATICI = "motra-statici-" + VERSIONE;
 const CACHE_ATTUALI = [CACHE_SHELL, CACHE_STATICI];

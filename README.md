@@ -1,170 +1,424 @@
-# Allenamenti Motra
+# Squadre Motra
 
 App per gestire allenamenti, formazioni e pagelle di una squadra di calcio a 7.
-Sito statico (nessun build), Firebase Realtime Database, PWA installabile,
-deploy su Netlify.
+Un solo codice serve più squadre, ognuna con il proprio sito.
 
-## Struttura dei file
+Sito statico senza passaggi di build, dati su Firebase Realtime Database,
+installabile come app sul telefono (PWA), pubblicato su Netlify.
+
+---
+
+## Indice
+
+1. [Avviare il progetto in locale](#1-avviare-il-progetto-in-locale)
+2. [Come è fatto](#2-come-è-fatto)
+3. [I dati su Firebase](#3-i-dati-su-firebase)
+4. [Gestire le squadre](#4-gestire-le-squadre)
+5. [Come si calcolano i voti](#5-come-si-calcolano-i-voti)
+6. [Verificare e regolare i valori arbitrari](#6-verificare-e-regolare-i-valori-arbitrari)
+7. [Pubblicare le squadre su siti diversi](#7-pubblicare-le-squadre-su-siti-diversi)
+8. [Manutenzione](#8-manutenzione)
+
+---
+
+## 1. Avviare il progetto in locale
+
+Serve un server HTTP: i moduli JavaScript non funzionano aprendo il file
+con doppio clic (`file://`), il browser li blocca.
+
+```bash
+cd "Allenamenti-Motra-Senior"
+npx serve .
+```
+
+Poi apri l'indirizzo che compare, di solito `http://localhost:3000`.
+
+| Indirizzo | Cosa mostra |
+|---|---|
+| `http://localhost:3000` | la squadra predefinita (Santa Maria) |
+| `http://localhost:3000/?team=sant-antonio` | Sant'Antonio |
+| `http://localhost:3000/?team=senior` | la stagione precedente |
+| `http://localhost:3000/gestione-squadre.html` | la pagina di gestione squadre |
+
+`?team=<id>` funziona con qualunque squadra presente sul database e serve
+proprio a provare in locale quello che online sarà deciso dal dominio.
+
+**Attenzione:** in locale scrivi sul **database vero**, non su una copia.
+Quello che salvi provando compare subito sui siti pubblicati.
+
+Va bene qualunque server statico, se non vuoi `npx`:
+
+```bash
+python -m http.server 3000
+```
+
+---
+
+## 2. Come è fatto
 
 | File | Ruolo |
 |---|---|
 | `index.html` | Pagina unica: le quattro sezioni sono tutte nel DOM |
 | `utils.js` | **Configurazione squadre**, avvisi, condivisione immagini, helper |
-| `statistiche.js` | Motore di calcolo puro (nessuna dipendenza dal DOM) |
+| `statistiche.js` | **Motore di calcolo puro**, nessuna dipendenza dal DOM |
 | `index.js` | Avvio, cronologia, tabelle statistiche, scheda giocatore |
 | `giocatori.js` | Lettura della rosa e abbreviazione dei nomi |
-| `router.js` | Routing via hash (`#stats`, `#cronologia`, `#partita`, `#allenamento`) |
+| `router.js` | Navigazione via hash (`#stats`, `#cronologia`, `#partita`, `#allenamento`) |
 | `partita_spa.js` | Campo, moduli, panchina, pagelle partita |
 | `allenamenti_spa.js` | Pagelle allenamento con bonus Atletica/Partitella |
-| `sw.js` | Service worker: network-first per il codice, cache-first per immagini e CDN |
+| `sw.js` | Service worker (funzionamento offline e aggiornamenti) |
 | `manifest-<squadra>.json` | Manifest PWA, uno per squadra |
+| `netlify.toml` | Configurazione di pubblicazione, uguale per tutti i siti |
+| `verifica-parametri.mjs` | Strumento per regolare i parametri di calcolo |
+| `gestione-squadre.html` | Pagina di servizio, **esclusa dal repository** |
 
-## Dati su Firebase
+Le quattro sezioni dell'app sono tutte già nel DOM e `router.js` mostra
+quella giusta in base all'hash. Questo fa funzionare il tasto Indietro del
+telefono, che altrimenti chiuderebbe l'app.
 
-Un solo progetto Firebase, **un ramo di primo livello per squadra**:
+Il calcolo è **separato dal disegno**: `statistiche.js` non tocca il DOM e
+riceve i dati come argomenti. Serve a poterlo verificare senza browser
+(vedi il [capitolo 6](#6-verificare-e-regolare-i-valori-arbitrari)).
+
+---
+
+## 3. I dati su Firebase
+
+Un solo progetto Firebase. **Ogni squadra è un ramo di primo livello.**
 
 ```
-sant-antonio/
+santa-maria/
 ├── creata          timestamp: fa esistere il ramo anche a rosa vuota
 ├── rosa/           { chiave: "Nome Cognome" }
-├── allenamenti/    chiavi push()
-│   └── {id}: { tipo, data, timestamp, giocatori: { "Nome": {
-│                 voto, bonusAtletica, bonusPartitella, votoFinale, commento } } }
-└── partite/        chiavi = data (YYYY-MM-DD)
+├── allenamenti/    chiavi generate automaticamente
+│   └── {id}: { tipo, data, timestamp,
+│               giocatori: { "Nome": { voto, bonusAtletica,
+│                            bonusPartitella, votoFinale, commento } } }
+└── partite/        chiavi = data della partita (YYYY-MM-DD)
     └── {YYYY-MM-DD}: { tipo, data, timestamp, modulo,
                         formazione: { portiere: "Nome", dif1: "Nome", ... },
                         titolari: [...], panchina: [...],
-                        giocatori: { "Nome": { voto, votoFinale, minuti, commento } } }
+                        giocatori: { "Nome": { voto, votoFinale,
+                                     minuti, commento } } }
 
-santa-maria/        stessa struttura
+sant-antonio/       stessa struttura
+senior/             stagione precedente
 
-senior/             stagione precedente, consultabile con ?team=senior
-
-archivio/           stagioni concluse (al momento vuoto)
+archivio/           stagioni concluse, stessa struttura per squadra
 ```
 
-**A decidere cosa e' consultabile e' il database, non un elenco nel codice.**
-Una squadra alla radice si vede; spostata sotto `archivio/` non si vede piu',
-e il sito lo dice esplicitamente invece di apparire vuoto.
+### La regola della visibilità
 
-`formazione` è la mappa posizione → giocatore: è il formato corrente e conserva
-le posizioni anche con slot vuoti. `titolari`/`panchina` restano scritti per
-compatibilità con i dati già presenti; le partite salvate prima di questo
-formato vengono lette dall'array posizionale.
+**A decidere cosa è consultabile è il database, non un elenco nel codice.**
 
-## Pagina di gestione (solo locale)
+| Dove sta la squadra | Sui siti |
+|---|---|
+| Alla radice | **Consultabile** |
+| Sotto `archivio/` | **Non consultabile**, con avviso esplicito |
 
-`gestione-squadre.html` è esclusa dal repository e quindi non finisce sul
-sito pubblicato. Va aperta da un server locale:
-`http://localhost:3000/gestione-squadre.html`
+Una squadra archiviata non appare vuota e basta: l'app se ne accorge e lo
+dice. Il controllo parte solo quando la squadra risulta senza dati, quindi
+nel caso normale non c'è nessuna lettura in più.
 
-Permette di creare una squadra (anche senza giocatori), aggiungere e
-rimuovere giocatori dalla rosa, archiviare una squadra e cancellarla.
+### Note sul formato
 
-L'archiviazione copia il ramo sotto `archivio/`, lo rilegge e lo confronta,
-e **solo se la copia coincide** cancella l'originale. L'eliminazione è
-definitiva e chiede di riscrivere il nome della squadra per conferma.
+`formazione` è la mappa posizione → giocatore ed è il formato corrente:
+conserva le posizioni anche quando uno slot resta vuoto. `titolari` e
+`panchina` continuano a essere scritti per compatibilità, e le partite
+salvate prima di questo formato vengono lette dall'array posizionale.
 
-## Come si calcolano i voti
+La rosa può essere salvata come oggetto o come array: entrambe le forme
+vengono lette correttamente.
 
-**Allenamento**
+**Il nome del giocatore è la chiave** che collega voti e presenze alla
+persona. Rinominarlo sul database spezza il collegamento con lo storico:
+per l'app diventa un giocatore diverso.
+
+---
+
+## 4. Gestire le squadre
+
+Tutto si fa da `gestione-squadre.html`, che gira **solo in locale**: è
+esclusa dal repository (`.gitignore`) e quindi non finisce mai sui siti
+pubblicati.
+
+```bash
+npx serve .
+# poi http://localhost:3000/gestione-squadre.html
+```
+
+All'apertura scegli una squadra esistente oppure ne crei una nuova.
+
+| Azione | Cosa fa |
+|---|---|
+| **Crea squadra** | Nuovo ramo sul database, con o senza giocatori |
+| **Aggiungi giocatore** | Lo mette nella rosa |
+| **Rimuovi giocatore** | Lo toglie dalla rosa, **senza cancellare il suo storico** |
+| **Archivia squadra** | La sposta sotto `archivio/`: sparisce dai siti, i dati restano |
+| **Elimina squadra** | Cancella rosa, allenamenti e partite. Definitivo |
+
+L'archiviazione copia il ramo, lo rilegge e lo confronta, e **cancella
+l'originale solo se la copia coincide**. Se qualcosa va storto a metà si
+ferma e avvisa, senza perdere niente.
+
+L'eliminazione chiede di **riscrivere il nome della squadra**: un semplice
+"sei sicuro?" sarebbe troppo facile da premere per sbaglio.
+
+Rimuovendo un giocatore dalla rosa, le sue vecchie presenze e i suoi voti
+restano nello storico e continuano a comparire nelle statistiche,
+contrassegnati con un asterisco.
+
+> Il nome della squadra diventa una chiave Firebase: solo minuscole,
+> numeri e trattini. `archivio` è riservato.
+
+---
+
+## 5. Come si calcolano i voti
+
+### Allenamento
 
 ```
 votoFinale = voto × (1 + (bonusAtletica + bonusPartitella) × 0.05)
-MV         = mediaVoti × (0.70 + 0.30 × tassoPresenza)
+MV         = mediaVoti × (PESO_BASE + PESO_PRESENZA × tassoPresenza)
 ```
+
+I due toggle Atletica e Partitella hanno tre stati (−5% / 0% / +5%) e si
+sommano: al massimo ±10% sul voto della seduta.
 
 La MV resta sempre nella scala 1-10: chi c'è sempre tiene il voto pieno,
-chi non si presenta mai perde al massimo il 30%. Il tasso di presenza è
-calcolato **dal primo allenamento in cui il giocatore compare**, così chi
-si aggrega a stagione iniziata non eredita assenze non sue.
+chi non si presenta mai perde al massimo il 30%.
 
-**Partita**
+Il tasso di presenza parte **dal primo allenamento in cui il giocatore
+compare**, così chi si aggrega a stagione iniziata non eredita assenze che
+non gli competono.
+
+### Partita
 
 ```
-MV = media pura dei voti presi
+MV = media dei voti effettivamente presi
 ```
 
-**S.V.** = presente alla partita ma non sceso in campo. Conta come presenza,
-non entra nella media e non porta minuti.
+Nessuna correzione: in partita la presenza la decide l'allenatore, non il
+giocatore.
 
-**MV3** = media degli ultimi 3 voti in ordine di data, saltando i S.V.
+**S.V.** significa presente ma non sceso in campo. Conta come presenza,
+non entra nella media e non porta minuti. Anche i vecchi record salvati
+con un minuto vengono letti come zero.
 
-I parametri sono in cima a `statistiche.js` (`PESO_BASE`, `PESO_PRESENZA`, `VOTI_MV3`).
+### MV3
 
-## Gestire due squadre con due link diversi
+Media degli ultimi `VOTI_MV3` voti **in ordine di data**, saltando i S.V.
+Serve a vedere il momento di forma, indipendentemente dalla stagione.
 
-Il codice è già predisposto: tutti i percorsi Firebase passano da `ID_SQUADRA`.
-**Un solo repository, un solo database, due siti Netlify.**
+L'ordinamento è per data dell'evento, non per momento del salvataggio:
+inserire in ritardo una partita vecchia non la manda in cima.
 
-### 1. Nome e colori dei siti dedicati
+---
 
-In `utils.js`, blocco `PRESENTAZIONE`:
+## 6. Verificare e regolare i valori arbitrari
 
-| Chiave | Ramo Firebase | Nome mostrato | Manifest |
-|---|---|---|---|
-| `sant-antonio` | `sant-antonio/` | Motra Sant'Antonio | `manifest-sant-antonio.json` |
-| `santa-maria` | `santa-maria/` | Motra Santa Maria | `manifest-santa-maria.json` |
+Alcuni numeri nel codice sono scelte, non verità. Sono tutti in un punto
+solo del rispettivo file e cambiarli è previsto.
 
-Questa mappa **non decide quali squadre esistono**: serve solo a dare un nome
-curato e colori propri alle squadre che hanno un sito dedicato.
+### I parametri di calcolo
 
-Ogni altra squadra alla radice del database resta consultabile con
-`?team=<id>` e riceve un nome ricavato dall'id (`senior` diventa
-"Motra Senior"), il tema predefinito e `manifest.json`.
+In cima a `statistiche.js`:
 
-`santa-maria` è la squadra predefinita: è la sua che compare aprendo il
-sito da un dominio non elencato nella mappa qui sotto.
+| Costante | Valore | Cosa controlla |
+|---|---|---|
+| `PESO_BASE` | `0.7` | quota di voto che **non** dipende dalla presenza |
+| `PESO_PRESENZA` | `0.3` | quota che la presenza può far guadagnare |
+| `VOTI_MV3` | `3` | quanti voti recenti entrano nell'MV3 |
 
-Le due app installate condividono **la stessa icona** e lo stesso colore di
-sfondo: a distinguerle sono il nome sotto l'icona e il colore della barra.
-`test-manifest` verifica che resti così.
+I due pesi vanno cambiati **in coppia**, perché la loro somma sia 1:
+solo così con presenza piena la MV coincide con la media dei voti.
+Alzando `PESO_PRESENZA` conta di più la costanza, abbassandolo conta di
+più il rendimento.
 
-### 2. Dire a ogni sito qual è la sua squadra
+### Come si verificano
 
-In `utils.js`, nella mappa `SQUADRA_PER_HOST`, decommentare e inserire i
-domini Netlify:
+```bash
+node verifica-parametri.mjs
+node verifica-parametri.mjs 7.5 25    # media voti 7.5, stagione di 25 allenamenti
+```
+
+Legge i valori veri da `statistiche.js` e stampa la tabella dell'effetto,
+quanto pesa una singola seduta, e due controlli di coerenza fatti girando
+il **motore di calcolo vero**, non una formula riscritta:
+
+```
+MV ALLENAMENTI  (media voti 7.00, stagione di 20 allenamenti)
+
+Presenze    Tasso         MV   Fascia colore
+  ----------------------------------------------
+  20/20     100%        7.00   buona
+  16/20     80%         6.58   media
+  12/20     60%         6.16   media
+  8/20      40%         5.74   bassa
+
+PESO DI UNA SINGOLA SEDUTA
+  venire o non venire sposta la MV di 0.105 punti (1.5% del voto)
+```
+
+Modifica le costanti, rilancia il comando e vedi subito come si muove la
+classifica prima di toccare i dati veri.
+
+Nota che il peso di una seduta **si diluisce**: è un rapporto, quindi a
+ottobre un'assenza pesa molto e a maggio quasi niente. È inevitabile con
+qualunque formula basata su percentuali, ed è anche corretto.
+
+### Gli altri valori regolabili
+
+| Valore | Dove | Significato |
+|---|---|---|
+| `0.05` | `allenamenti_spa.js` | passo dei bonus Atletica/Partitella (5%) |
+| `MINUTI_MIN` / `MINUTI_MAX` | `partita_spa.js` | estremi dello slider minuti (1 e 50) |
+| `moduli` | `partita_spa.js` | moduli disponibili e nomi dei ruoli |
+| soglie `6` / `7` / `8` | `statistiche.js`, `classeMedia` | dove cambia il colore delle celle |
+| `min`/`max`/`step` degli slider voto | `partita_spa.js`, `allenamenti_spa.js` | scala 1-10 a passi di 0,25 |
+| `3000` | `utils.js` | durata in millisecondi degli avvisi a fondo schermo |
+| `VERSIONE` | `sw.js` | versione della cache del service worker |
+
+I colori delle fasce stanno in `colors.css`. Le tinte usate nelle tabelle
+sono **piene e già fuse sullo sfondo** (`--media-*-piena`): servono così
+perché html2canvas, che genera le immagini condivise, non sa disegnare le
+trasparenze sovrapposte né i box-shadow.
+
+---
+
+## 7. Pubblicare le squadre su siti diversi
+
+**Un repository, un branch, un database. Due siti.**
+A distinguerli è soltanto il dominio da cui arriva la richiesta.
+
+### Come l'app capisce quale squadra mostrare
+
+In ordine di priorità, in `utils.js`:
+
+1. `?team=<id>` nell'indirizzo — per le prove
+2. `window.TEAM_ID` — se un giorno userai una variabile d'ambiente
+3. **il dominio**, tramite `SQUADRA_PER_HOST` — il meccanismo di produzione
+4. la squadra predefinita, `SQUADRA_DEFAULT`
 
 ```js
 const SQUADRA_PER_HOST = {
     "motra-sant-antonio.netlify.app": "sant-antonio",
-    "motra-santa-maria.netlify.app": "santa-maria",
+    "motra-santa-maria.netlify.app": "santa-maria"
 };
 ```
 
-### 3. Creare il secondo sito su Netlify
+### Nome e colori dei siti
 
-Netlify → *Add new site* → *Import from Git* → **stesso repository, stesso
-branch `main`**, publish directory `.`, nessun comando di build.
-Poi *Site configuration* → *Change site name* con il nome usato nella mappa.
+Il blocco `PRESENTAZIONE` in `utils.js` **non decide quali squadre
+esistono**: dà solo un nome curato e colori propri a chi ha un sito
+dedicato.
 
-Da quel momento ogni push su `main` aggiorna entrambi i siti, ciascuno con la
-propria squadra, la propria icona e il proprio nome sulla home screen.
+| Chiave | Nome mostrato | Barra browser | Manifest |
+|---|---|---|---|
+| `santa-maria` | Motra Santa Maria | blu `#1e3a8a` | `manifest-santa-maria.json` |
+| `sant-antonio` | Motra Sant'Antonio | grigio `#1f2937` | `manifest-sant-antonio.json` |
 
-### Provare senza pubblicare
+`santa-maria` è la squadra predefinita.
 
-`?team=<id>` forza la squadra su qualunque dominio, anche in locale:
-`http://localhost:8000/index.html?team=santa-maria`
+Ogni altra squadra alla radice del database resta consultabile con
+`?team=<id>` e riceve un nome ricavato dall'id — `senior` diventa
+"Motra Senior" — più il tema predefinito e `manifest.json`.
 
-### Se un giorno servisse una variabile d'ambiente
+Le due app installate sul telefono **condividono la stessa icona** e lo
+stesso colore di sfondo: a distinguerle sono il nome sotto l'icona e il
+colore della barra.
 
-`utils.js` legge anche `window.TEAM_ID`, con priorità superiore all'hostname:
-basta un `config.js` generato in fase di build. Oggi non serve.
+### L'icona dell'app
 
-## Sviluppo in locale
-
-Serve un server HTTP (i moduli ES non funzionano da `file://`):
+`immagini/favicon.svg` è dichiarata `any` e `maskable` insieme, quindi è
+costruita per reggere entrambi gli usi:
 
 ```
-npx serve .
+865 x 865
+├── <rect> di sfondo pieno         evita il bordo bianco che Android
+│                                  aggiunge alle icone non mascherabili
+└── <g scale(0.8)>  il logo        sta nell'80% centrale, la zona che
+                                   tutte le maschere garantiscono visibile
 ```
 
-## Note operative
+Quel **80% non è decorativo**: Android ritaglia l'icona a cerchio, goccia o
+quadrato stondato a seconda del telefono, e solo il cerchio centrale
+all'80% è sempre al sicuro. Ingrandendo il logo oltre quella soglia gli
+angoli vengono tagliati; rimpicciolendolo ricompare il bordo bianco largo.
 
-- **Service worker**: strategia network-first sul codice, quindi un deploy si
-  vede al primo ricaricamento. Cambiare `VERSIONE` in `sw.js` solo se serve
-  invalidare tutto.
-- **Regole Firebase**: il database è in lettura e scrittura aperta. Scelta
-  consapevole: il sito è a uso personale.
-- **Icona**: `immagini/favicon.svg` pesa circa 340 KB (export Illustrator).
-  Vale la pena ottimizzarlo (SVGO) e affiancargli un PNG 512×512 per iOS.
+Cambiando l'icona va anche alzata `VERSIONE` in `sw.js`, altrimenti chi ha
+già visitato il sito continua a vedere quella vecchia: le immagini sono in
+cache. Sul telefono può servire disinstallare e reinstallare l'app, perché
+il lanciatore memorizza l'icona al momento dell'installazione.
+
+### Pubblicare un nuovo sito
+
+Netlify → *Add new site* → *Import an existing project* → GitHub →
+**lo stesso repository**.
+
+| Campo | Valore |
+|---|---|
+| Branch to deploy | `main` |
+| Build command | *vuoto* |
+| Publish directory | `.` |
+
+Non serve compilare nulla a mano: `netlify.toml` imposta già tutto ed è
+uguale per entrambi i siti. Poi *Site configuration* → *Change site name*
+con il nome usato in `SQUADRA_PER_HOST`.
+
+Da quel momento ogni push su `main` aggiorna tutti i siti, ciascuno con la
+propria squadra.
+
+### Aggiungere una terza squadra
+
+1. Creala dalla pagina di gestione (crea il ramo sul database)
+2. Aggiungi una voce in `PRESENTAZIONE` con nome, tema e manifest
+3. Copia un manifest esistente cambiando `id`, `name`, `short_name`, `theme_color`
+4. Aggiungi il file alla lista `SHELL` in `sw.js`
+5. Aggiungi il dominio in `SQUADRA_PER_HOST`
+6. Crea il sito su Netlify e rinominalo
+
+Solo il punto 1 è obbligatorio: senza gli altri la squadra è comunque
+raggiungibile con `?team=<id>`.
+
+> I nomi dei siti sono scritti nel codice. Se rinomini un sito su Netlify
+> e non aggiorni la mappa, quel sito mostrerà la squadra predefinita.
+
+---
+
+## 8. Manutenzione
+
+### Aggiornamenti che non si vedono
+
+Il service worker usa **network-first** sul codice: un deploy si vede al
+primo ricaricamento. `netlify.toml` forza inoltre la riconvalida di
+`sw.js`, `index.html`, JS e CSS, che hanno nomi fissi senza impronta.
+
+Se un telefono resta indietro, di solito basta ricaricare due volte: la
+prima scarica il service worker nuovo, la seconda lo usa. Cambia
+`VERSIONE` in `sw.js` solo se serve buttare via tutta la cache.
+
+### Regole Firebase
+
+Il database è **in lettura e scrittura aperta**, senza autenticazione.
+Scelta consapevole: il sito è a uso personale. Chi conosce l'indirizzo può
+leggere e modificare tutto.
+
+### Cose da sistemare, prima o poi
+
+- `immagini/favicon.svg` pesa circa 330 KB (export da Illustrator). Vale la
+  pena passarlo in SVGO e affiancargli un PNG 512x512 per iOS, che non
+  supporta le icone SVG.
+- L'SDK Firebase è la versione `compat` 9.6.1, deprecata. Funziona, ma
+  prima o poi conviene passare alla v10 modulare.
+- Offline l'app si apre ma non ha dati: il database ha bisogno della rete.
+
+### Backup
+
+Il database non ha copie automatiche. Per farne una:
+
+```bash
+curl -s "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app/.json" > backup.json
+```
+
+I file `backup-*.json` sono esclusi da git.
