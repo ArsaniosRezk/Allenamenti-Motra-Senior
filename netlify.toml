@@ -1,0 +1,34 @@
+# Configurazione Netlify, valida per ENTRAMBI i siti: sono lo stesso
+# repository e lo stesso branch. A distinguerli e' il dominio, tradotto
+# in squadra dalla mappa SQUADRA_PER_HOST in utils.js.
+#
+# Nessuna variabile d'ambiente, nessun passaggio di build: si pubblica
+# la cartella cosi' com'e'.
+
+[build]
+  publish = "."
+  command = ""
+
+# Il service worker decide quando aggiornare tutto il resto: se lo
+# servisse la cache del browser, un deploy potrebbe restare invisibile.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Stessa ragione per la pagina e per i moduli: sono file con nome fisso,
+# senza impronta nel nome, quindi vanno sempre riconvalidati.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

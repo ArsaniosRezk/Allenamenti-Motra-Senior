@@ -1,0 +1,6 @@
+# Pagina di servizio: gira solo in locale, non va nel repository
+# e quindi non finisce nemmeno sul sito pubblicato su Netlify.
+gestione-squadre.html
+
+# Copie di sicurezza del database create prima delle migrazioni
+backup-*.json

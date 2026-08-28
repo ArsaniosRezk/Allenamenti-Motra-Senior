@@ -1,7 +1,7 @@
 {
-    "id": "/",
-    "name": "Motra",
-    "short_name": "Motra",
+    "id": "/?team=santa-maria",
+    "name": "Motra Santa Maria",
+    "short_name": "Santa Maria",
     "description": "Allenamenti, formazioni e pagelle della squadra.",
     "lang": "it",
     "start_url": "./index.html#stats",
@@ -9,7 +9,7 @@
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#0f172a",
-    "theme_color": "#1f2937",
+    "theme_color": "#1e3a8a",
     "icons": [
         {
             "src": "immagini/favicon.svg",

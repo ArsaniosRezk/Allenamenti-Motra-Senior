@@ -1,66 +1,102 @@
-// partita_spa.js
+// partita_spa.js - formazione in campo e pagelle della partita
 import { giocatori, abbreviaNomeFormazione } from "./giocatori.js";
-import { mostraAvviso, ID_SQUADRA, condividiImmagine } from "./utils.js";
-
-const firebaseDB = window.firebaseDB;
+import {
+    mostraAvviso,
+    escapeHtml,
+    dataOggi,
+    catturaECondividi,
+    quandoDatiPronti,
+    ID_SQUADRA
+} from "./utils.js";
 
 const divCampo = document.getElementById("campo");
 const selectModulo = document.getElementById("moduloFormazione");
 const dataInput = document.getElementById("dataPartita");
 const votiContainer = document.getElementById("votiContainer");
-const salvaFormazioneBtn = document.getElementById("salvaFormazione");
 const salvaPagellaBtn = document.getElementById("salvaPagella");
+
+const MINUTI_MIN = 1;
+const MINUTI_MAX = 50;
 
 const moduli = {
     "3-2-1": [
         [{ id: "att", label: "PC" }],
         [
             { id: "cen1", label: "CC" },
-            { id: "cen2", label: "CC" },
+            { id: "cen2", label: "CC" }
         ],
         [
             { id: "dif3", label: "TS" },
             { id: "dif2", label: "DC" },
-            { id: "dif1", label: "TD" },
+            { id: "dif1", label: "TD" }
         ],
-        [{ id: "portiere", label: "POR" }],
+        [{ id: "portiere", label: "POR" }]
     ],
     "2-3-1": [
         [{ id: "att", label: "PC" }],
         [
             { id: "cen3", label: "CS" },
             { id: "cen2", label: "CC" },
-            { id: "cen1", label: "CD" },
+            { id: "cen1", label: "CD" }
         ],
         [
             { id: "dif2", label: "DS" },
-            { id: "dif1", label: "DD" },
+            { id: "dif1", label: "DD" }
         ],
-        [{ id: "portiere", label: "POR" }],
-    ],
+        [{ id: "portiere", label: "POR" }]
+    ]
 };
 
-function getIdsCorrenti() {
-    if (!selectModulo) return [];
-    const modulo = selectModulo.value;
-    const config = moduli[modulo];
-    const idsTitolari = [];
-    config.forEach((riga) => {
-        riga.forEach((slot) => idsTitolari.push(slot.id));
-    });
-    const idsPanchina = [];
-    for (let i = 1; i <= 10; i++) idsPanchina.push(`p${i}`);
-    return [...idsTitolari, ...idsPanchina];
+const MODULO_DEFAULT = "3-2-1";
+const idsPanchina = Array.from({ length: 10 }, (_, i) => "p" + (i + 1));
+
+/* Identificatore sicuro da usare negli attributi id="" */
+function slug(nome) {
+    return String(nome).replace(/[^a-zA-Z0-9]+/g, "_");
 }
 
-function renderCampo() {
-    if (!divCampo) return;
-    const modulo = selectModulo.value;
-    const config = moduli[modulo];
+function moduloCorrente() {
+    const valore = selectModulo ? selectModulo.value : MODULO_DEFAULT;
+    return moduli[valore] ? valore : MODULO_DEFAULT;
+}
 
-    const valoriAttuali = {};
-    const inputs = divCampo.querySelectorAll("select");
-    inputs.forEach(el => valoriAttuali[el.id] = el.value);
+function idsTitolari(modulo) {
+    return moduli[modulo || moduloCorrente()].flat().map((s) => s.id);
+}
+
+function getIdsCorrenti() {
+    return [...idsTitolari(), ...idsPanchina];
+}
+
+/* =========================================================
+   CAMPO
+   ========================================================= */
+function raccogliValori() {
+    const valori = {};
+    getIdsCorrenti().forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) valori[id] = el.value;
+    });
+    return valori;
+}
+
+function applicaValori(valori) {
+    Object.entries(valori).forEach(([id, nome]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Il valore si puo' assegnare solo se l'opzione esiste gia'
+        if (nome && !Array.from(el.options).some((o) => o.value === nome)) return;
+        el.value = nome || "";
+    });
+}
+
+function renderCampo(valoriIniziali) {
+    if (!divCampo) return;
+
+    // Se non viene passato nulla si conserva quanto e' gia' schierato:
+    // cambiare modulo non deve azzerare la formazione.
+    const valori = valoriIniziali || raccogliValori();
+    const config = moduli[moduloCorrente()];
 
     divCampo.innerHTML = "";
 
@@ -73,7 +109,6 @@ function renderCampo() {
 
             const select = document.createElement("select");
             select.id = slot.id;
-            if (valoriAttuali[slot.id]) select.value = valoriAttuali[slot.id];
 
             const label = document.createElement("label");
             label.textContent = slot.label;
@@ -85,22 +120,46 @@ function renderCampo() {
         divCampo.appendChild(divRiga);
     });
 
-    // Injected Action Buttons
     const btnShare = document.createElement("button");
+    btnShare.type = "button";
     btnShare.className = "campo-action-btn btn-pos-left";
+    btnShare.id = "actionShare";
+    btnShare.title = "Condividi la formazione";
     btnShare.innerHTML = '<i class="fas fa-share-nodes"></i>';
-    btnShare.id = "actionShare"; // For delegation or selection
     divCampo.appendChild(btnShare);
 
     const btnSave = document.createElement("button");
+    btnSave.type = "button";
     btnSave.className = "campo-action-btn btn-pos-right";
-    btnSave.innerHTML = '<i class="fas fa-save"></i>';
     btnSave.id = "actionSave";
+    btnSave.title = "Salva la formazione";
+    btnSave.innerHTML = '<i class="fas fa-save"></i>';
     divCampo.appendChild(btnSave);
 
-    popolaSelect();
+    // Prima si creano tutte le opzioni, poi si riassegnano i valori:
+    // assegnare un valore a una select vuota non avrebbe alcun effetto.
+    collegaSelect();
+    riempiTutteLeOpzioni();
+    applicaValori(valori);
+    aggiornaOpzioniSelect();
 }
 
+/* Riempie ogni select con l'intera rosa (senza filtri) */
+function riempiTutteLeOpzioni() {
+    getIdsCorrenti().forEach((id) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const corrente = select.value;
+        select.innerHTML = "";
+        select.appendChild(new Option("-", ""));
+        giocatori.forEach((nome) => {
+            select.appendChild(new Option(abbreviaNomeFormazione(nome), nome));
+        });
+        select.value = corrente;
+    });
+}
+
+/* Nasconde dalle tendine i giocatori gia' schierati altrove */
 function aggiornaOpzioniSelect() {
     const ids = getIdsCorrenti();
     const selezionati = new Set();
@@ -115,17 +174,11 @@ function aggiornaOpzioniSelect() {
 
         const valoreCorrente = select.value;
         select.innerHTML = "";
-
-        const opzioneVuota = document.createElement("option");
-        opzioneVuota.value = "";
-        opzioneVuota.textContent = "-";
-        select.appendChild(opzioneVuota);
+        select.appendChild(new Option("-", ""));
 
         giocatori.forEach((nome) => {
             if (!selezionati.has(nome) || nome === valoreCorrente) {
-                const opt = document.createElement("option");
-                opt.value = nome;
-                opt.textContent = abbreviaNomeFormazione(nome);
+                const opt = new Option(abbreviaNomeFormazione(nome), nome);
                 if (nome === valoreCorrente) opt.selected = true;
                 select.appendChild(opt);
             }
@@ -133,203 +186,218 @@ function aggiornaOpzioniSelect() {
     });
 }
 
-function popolaSelect() {
-    const ids = getIdsCorrenti();
-    ids.forEach((id) => {
+function collegaSelect() {
+    getIdsCorrenti().forEach((id) => {
         const select = document.getElementById(id);
-        if (select) {
-            select.removeEventListener("change", aggiornaOpzioniSelect);
-            select.addEventListener("change", aggiornaOpzioniSelect);
+        if (!select) return;
+        select.removeEventListener("change", aggiornaOpzioniSelect);
+        select.addEventListener("change", aggiornaOpzioniSelect);
+    });
+}
+
+/* Formazione salvata come mappa slot -> giocatore.
+   Gli array titolari/panchina restano per compatibilita' con i dati
+   gia' presenti sul database e con le statistiche esistenti. */
+function getFormazioneCorrente() {
+    const formazione = {};
+    const titolari = [];
+
+    idsTitolari().forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && el.value) {
+            formazione[id] = el.value;
+            titolari.push(el.value);
         }
     });
-    aggiornaOpzioniSelect();
-}
 
-function getFormazioneCorrente() {
-    const ids = getIdsCorrenti();
-    const modulo = selectModulo.value;
-    const numTitolari = moduli[modulo].flat().length;
-
-    const titolari = [];
     const panchina = [];
-
-    for (let i = 0; i < numTitolari; i++) {
-        const el = document.getElementById(ids[i]);
-        if (el && el.value) titolari.push(el.value);
-    }
-
-    for (let i = numTitolari; i < ids.length; i++) {
-        const el = document.getElementById(ids[i]);
+    idsPanchina.forEach((id) => {
+        const el = document.getElementById(id);
         if (el && el.value) panchina.push(el.value);
-    }
+    });
 
-    return { titolari, panchina };
+    return { formazione, titolari, panchina };
 }
 
-// Unified Card for Partita
-function creaPlayerCardPartita(nome, datiVoto = {}) {
+/* =========================================================
+   PAGELLE
+   ========================================================= */
+function creaPlayerCardPartita(nome, datiVoto) {
+    const dati = datiVoto || {};
     const isSquadra = nome === "Squadra";
-    const voto = datiVoto.voto || 1; // Default "parta da 1"
-    const isSV = datiVoto.voto === "S.V.";
-    let minuti = datiVoto.minuti;
+    const isSV = dati.voto === "S.V." || dati.votoFinale === "S.V.";
 
-    if (minuti === undefined || minuti === null || minuti === "" || minuti < 1) {
-        minuti = 1;
-    }
-    if (minuti > 50) minuti = 50;
+    const votoNumerico = parseFloat(dati.voto);
+    const voto = isSV || isNaN(votoNumerico) ? 1 : votoNumerico;
 
-    const commento = datiVoto.commento || "";
-    // Full Name
-    const displayNome = isSquadra ? "SQUADRA" : nome;
-    const safeNome = nome.replace(/\s+/g, '_');
+    let minuti = parseInt(dati.minuti, 10);
+    if (isNaN(minuti) || minuti < MINUTI_MIN) minuti = MINUTI_MIN;
+    if (minuti > MINUTI_MAX) minuti = MINUTI_MAX;
+
+    const commento = dati.commento || "";
+    const id = slug(nome);
+    const nomeAttr = escapeHtml(nome);
+    const displayNome = escapeHtml(isSquadra ? "SQUADRA" : nome);
     const displayVoto = isSV ? "S.V." : Number(voto).toFixed(2);
+    const nascosto = isSV ? ' style="display:none;"' : "";
 
-    // Status Toggle
-    let boxStatus = "";
-    if (!isSquadra) {
-        boxStatus = `
-        <div style="display:flex; align-items:center;">
-            <span class="pc-switch-label">S.V.</span>
-            <label class="pc-switch">
-                <input type="checkbox" class="cb-sv" data-nome="${nome}" ${isSV ? "checked" : ""}>
-                <span class="pc-slider-switch"></span>
-            </label>
-        </div>`;
-    }
+    const boxStatus = isSquadra
+        ? ""
+        : '<div class="pc-switch-box">' +
+          '<span class="pc-switch-label">S.V.</span>' +
+          '<label class="pc-switch">' +
+          '<input type="checkbox" class="cb-sv" data-nome="' + nomeAttr + '"' +
+          (isSV ? " checked" : "") + ">" +
+          '<span class="pc-slider-switch"></span>' +
+          "</label></div>";
 
-    // Minuti Slider
-    let boxMinuti = "";
-    if (!isSquadra) {
-        boxMinuti = `
-        <div class="pc-vote-row" style="margin-top:4px;">
-            <div class="pc-vote-header">
-                <span class="pc-vote-label">Minuti</span>
-                <span id="valore-min-${safeNome}" class="pc-vote-value" style="color:#f59e0b; font-size:1rem;">${minuti}'</span>
-            </div>
-            <div class="pc-slider-wrapper">
-                <input type="range" 
-                       class="input-minuti-slider pc-slider" 
-                       min="1" max="50" step="1" 
-                       value="${minuti}" 
-                       data-nome="${nome}"
-                       ${isSV ? "disabled" : ""}>
-            </div>
-        </div>`;
-    }
+    const boxMinuti = isSquadra
+        ? ""
+        : '<div class="pc-vote-row" style="margin-top:4px;">' +
+          '<div class="pc-vote-header">' +
+          '<span class="pc-vote-label">Minuti</span>' +
+          '<span id="valore-min-' + id + '" class="pc-vote-value pc-valore-minuti">' + minuti + "'</span>" +
+          "</div>" +
+          '<div class="pc-slider-wrapper">' +
+          '<input type="range" class="input-minuti-slider pc-slider" min="' + MINUTI_MIN +
+          '" max="' + MINUTI_MAX + '" step="1" value="' + minuti + '" data-nome="' + nomeAttr + '"' +
+          (isSV ? " disabled" : "") + ">" +
+          "</div></div>";
 
-    // Collapsing logic
-    const contentDisplay = isSV ? 'style="display:none;"' : '';
-
-    return `
-    <div class="pc-card ${isSV ? 'disabled' : ''}" id="card-${safeNome}">
-        <div class="pc-header">
-            <span class="pc-name">${displayNome}</span>
-            ${boxStatus}
-        </div>
-
-        <div class="pc-body" id="body-${safeNome}" ${contentDisplay}>
-            <!-- Voto Slider Row -->
-            <div class="pc-vote-row">
-                <div class="pc-vote-header">
-                    <span class="pc-vote-label">Voto</span>
-                    <span id="valore-${safeNome}" class="pc-vote-value">${displayVoto}</span>
-                </div>
-                <div class="pc-slider-wrapper">
-                    <input type="range" 
-                           class="input-voto-slider pc-slider" 
-                           min="1" max="10" step="0.25" 
-                           value="${isSV ? 1 : voto}" 
-                           data-nome="${nome}"
-                           ${isSV ? "disabled" : ""}>
-                </div>
-            </div>
-
-            ${boxMinuti}
-        </div>
-
-        <div class="pc-footer" id="footer-${safeNome}" ${contentDisplay}>
-            <textarea placeholder="Commento..." 
-                      data-nome="${nome}" 
-                      class="input-commento pc-comment-input">${commento}</textarea>
-        </div>
-    </div>
-    `;
+    return (
+        '<div class="pc-card' + (isSV ? " disabled" : "") + '" id="card-' + id + '">' +
+        '<div class="pc-header">' +
+        '<span class="pc-name">' + displayNome + "</span>" +
+        boxStatus +
+        "</div>" +
+        '<div class="pc-body" id="body-' + id + '"' + nascosto + ">" +
+        '<div class="pc-vote-row">' +
+        '<div class="pc-vote-header">' +
+        '<span class="pc-vote-label">Voto</span>' +
+        '<span id="valore-' + id + '" class="pc-vote-value">' + displayVoto + "</span>" +
+        "</div>" +
+        '<div class="pc-slider-wrapper">' +
+        '<input type="range" class="input-voto-slider pc-slider" min="1" max="10" step="0.25" value="' +
+        (isSV ? 1 : voto) + '" data-nome="' + nomeAttr + '"' + (isSV ? " disabled" : "") + ">" +
+        "</div></div>" +
+        boxMinuti +
+        "</div>" +
+        '<div class="pc-footer" id="footer-' + id + '"' + nascosto + ">" +
+        '<textarea placeholder="Commento..." data-nome="' + nomeAttr +
+        '" class="input-commento pc-comment-input">' + escapeHtml(commento) + "</textarea>" +
+        "</div></div>"
+    );
 }
 
-// Global delegated listeners for Partite
-document.addEventListener('input', (e) => {
-    // Voto Slider
-    if (e.target.classList.contains('input-voto-slider') && !e.target.classList.contains('input-all')) {
-        const val = parseFloat(e.target.value).toFixed(2);
-        const nome = e.target.dataset.nome;
-        const safeNome = nome.replace(/\s+/g, '_');
-        const span = document.getElementById(`valore-${safeNome}`);
-        if (span) span.textContent = val;
-    }
-    // Minuti Slider
-    if (e.target.classList.contains('input-minuti-slider')) {
-        const val = e.target.value;
-        const nome = e.target.dataset.nome;
-        const safeNome = nome.replace(/\s+/g, '_');
-        const span = document.getElementById(`valore-min-${safeNome}`);
-        if (span) span.textContent = val + "'";
-    }
-});
-
-document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('cb-sv')) {
-        const isChecked = e.target.checked;
-        const nome = e.target.dataset.nome;
-        const safeNome = nome.replace(/\s+/g, '_');
-
-        const card = document.getElementById(`card-${safeNome}`);
-        const inputs = card.querySelectorAll('input, textarea'); // Select all inputs in this card
-
-        if (isChecked) {
-            // S.V. On -> Disable & Collapse
-            inputs.forEach(input => {
-                if (!input.classList.contains('cb-sv')) input.disabled = true;
-            });
-            card.querySelector('.pc-body').style.display = 'none';
-            card.querySelector('.pc-footer').style.display = 'none';
-            card.classList.add('disabled');
-        } else {
-            // S.V. Off -> Enable & Expand
-            inputs.forEach(input => {
-                input.disabled = false;
-            });
-            card.querySelector('.pc-body').style.display = ''; // Revert to CSS (flex)
-            card.querySelector('.pc-footer').style.display = 'block';
-            card.classList.remove('disabled');
-        }
-        const sliderVoto = card.querySelector('.input-voto-slider');
-        const spanVoto = document.getElementById(`valore-${safeNome}`);
-        if (spanVoto && sliderVoto) spanVoto.textContent = parseFloat(sliderVoto.value).toFixed(2);
-    }
-});
-
-function mostraCampiVoto(titolari = [], panchina = [], voti = {}) {
+function mostraCampiVoto(titolari, panchina, voti) {
+    if (!votiContainer) return;
+    const dati = voti || {};
     votiContainer.innerHTML = "";
 
-    // Squadra Card
-    const datiSquadra = voti["Squadra"] || {};
-    const divSquadra = document.createElement("div");
-    divSquadra.innerHTML = creaPlayerCardPartita("Squadra", datiSquadra);
-    votiContainer.appendChild(divSquadra.firstElementChild);
-
-    // Players
-    const tutti = [...new Set([...titolari, ...panchina])];
-
+    const tutti = ["Squadra", ...new Set([...(titolari || []), ...(panchina || [])])];
     tutti.forEach((nome) => {
-        const div = document.createElement("div");
-        div.innerHTML = creaPlayerCardPartita(nome, voti[nome]);
-        votiContainer.appendChild(div.firstElementChild);
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = creaPlayerCardPartita(nome, dati[nome]);
+        votiContainer.appendChild(wrapper.firstElementChild);
     });
 }
 
+/* Legge dal DOM i voti attualmente inseriti, cosi' da non perderli
+   quando si risalva la formazione. */
+function leggiVotiDalDOM() {
+    const voti = {};
+    document.querySelectorAll("#votiContainer .pc-card").forEach((card) => {
+        const sliderVoto = card.querySelector(".input-voto-slider");
+        if (!sliderVoto) return;
+
+        const nome = sliderVoto.dataset.nome;
+        const cbSV = card.querySelector(".cb-sv");
+        const sliderMinuti = card.querySelector(".input-minuti-slider");
+        const commentoInput = card.querySelector(".input-commento");
+        const commento = commentoInput ? commentoInput.value : "";
+
+        if (cbSV && cbSV.checked) {
+            // S.V. = presente ma non sceso in campo: nessun voto, zero minuti.
+            voti[nome] = { voto: "S.V.", votoFinale: "S.V.", commento };
+            if (nome !== "Squadra") voti[nome].minuti = 0;
+            return;
+        }
+
+        const votoVal = parseFloat(sliderVoto.value);
+        voti[nome] = { voto: votoVal, votoFinale: votoVal, commento };
+
+        if (nome !== "Squadra" && sliderMinuti) {
+            const minuti = parseInt(sliderMinuti.value, 10);
+            voti[nome].minuti = isNaN(minuti) ? 0 : minuti;
+        }
+    });
+    return voti;
+}
+
+/* =========================================================
+   LISTENER DELEGATI
+   ========================================================= */
+document.addEventListener("input", (e) => {
+    const target = e.target;
+
+    if (
+        target.classList.contains("input-voto-slider") &&
+        !target.classList.contains("input-all")
+    ) {
+        const span = document.getElementById("valore-" + slug(target.dataset.nome));
+        if (span) span.textContent = parseFloat(target.value).toFixed(2);
+    }
+
+    if (target.classList.contains("input-minuti-slider")) {
+        const span = document.getElementById("valore-min-" + slug(target.dataset.nome));
+        if (span) span.textContent = target.value + "'";
+    }
+});
+
+document.addEventListener("change", (e) => {
+    if (!e.target.classList.contains("cb-sv")) return;
+
+    const attivo = e.target.checked;
+    const id = slug(e.target.dataset.nome);
+    const card = document.getElementById("card-" + id);
+    if (!card) return;
+
+    card.querySelectorAll("input, textarea").forEach((input) => {
+        if (!input.classList.contains("cb-sv")) input.disabled = attivo;
+    });
+
+    const body = card.querySelector(".pc-body");
+    const footer = card.querySelector(".pc-footer");
+    if (body) body.style.display = attivo ? "none" : "";
+    if (footer) footer.style.display = attivo ? "none" : "block";
+    card.classList.toggle("disabled", attivo);
+
+    // Senza voto significa anche senza minuti giocati
+    const sliderMinuti = card.querySelector(".input-minuti-slider");
+    const spanMinuti = document.getElementById("valore-min-" + id);
+    if (attivo && spanMinuti) spanMinuti.textContent = "0'";
+    if (!attivo && sliderMinuti && spanMinuti) {
+        spanMinuti.textContent = sliderMinuti.value + "'";
+    }
+
+    const sliderVoto = card.querySelector(".input-voto-slider");
+    const spanVoto = document.getElementById("valore-" + id);
+    if (spanVoto && sliderVoto) {
+        spanVoto.textContent = attivo ? "S.V." : parseFloat(sliderVoto.value).toFixed(2);
+    }
+});
+
+/* =========================================================
+   RIEPILOGO TITOLARITA'
+   ========================================================= */
 function mostraStatistichePartite(stats) {
+    const esistente = document.querySelector(".statistiche-container");
+    if (esistente) esistente.remove();
+    if (!votiContainer) return;
+
     const div = document.createElement("div");
     div.className = "statistiche-container";
+
     const table = document.createElement("table");
     table.className = "statistiche-tabella";
 
@@ -343,288 +411,287 @@ function mostraStatistichePartite(stats) {
                 tr.appendChild(document.createElement("td"));
                 return;
             }
-            const abbrev = abbreviaNomeFormazione(nome);
             const dati = stats[nome] || { titolare: 0, minuti: 0 };
+
             const tdNome = document.createElement("td");
             tdNome.className = "stat-nome";
-            tdNome.textContent = abbrev;
+            tdNome.textContent = abbreviaNomeFormazione(nome);
+
             const tdStat = document.createElement("td");
             tdStat.className = "stat-valori";
-            tdStat.textContent = `Tit: ${dati.titolare} - Min: ${dati.minuti}`;
+            tdStat.textContent = "Tit: " + dati.titolare + " - Min: " + dati.minuti;
 
             tr.appendChild(tdNome);
             tr.appendChild(tdStat);
         });
         table.appendChild(tr);
     }
-    const existing = document.querySelector(".statistiche-container");
-    if (existing) existing.remove();
 
     div.appendChild(table);
-    div.appendChild(table);
-    div.appendChild(table);
-
-    // Fix: Insert before #votiContainer since buttons are now absolute or removed
-    if (votiContainer) {
-        votiContainer.parentNode.insertBefore(div, votiContainer);
-    } else {
-        // Fallback: append to #page-partita if possible, or after panchina
-        const panchina = document.getElementById("div-panchina");
-        if (panchina) panchina.parentNode.appendChild(div);
-    }
+    votiContainer.parentNode.insertBefore(div, votiContainer);
 }
 
 async function calcolaStatistichePartite() {
-    const snap = await firebaseDB.ref(`${ID_SQUADRA}/partite`).once("value");
-    const partite = snap.val();
-    const stats = {};
+    try {
+        const snap = await window.firebaseDB.ref(ID_SQUADRA + "/partite").once("value");
+        const partite = snap.val() || {};
+        const stats = {};
+        const rec = (nome) => (stats[nome] = stats[nome] || { titolare: 0, minuti: 0 });
 
-    Object.values(partite || {}).forEach((partita) => {
-        if (!partita.giocatori) return;
-        (partita.titolari || []).forEach((nome) => {
-            if (!stats[nome]) stats[nome] = { titolare: 0, minuti: 0 };
-            stats[nome].titolare++;
+        Object.values(partite).forEach((partita) => {
+            if (!partita.giocatori) return;
+
+            const titolari = partita.formazione
+                ? Object.values(partita.formazione)
+                : partita.titolari || [];
+            titolari.forEach((nome) => rec(nome).titolare++);
+
+            Object.entries(partita.giocatori).forEach(([nome, dati]) => {
+                const sv = dati.voto === "S.V." || dati.votoFinale === "S.V.";
+                if (sv) return; // senza voto, quindi senza minuti
+                rec(nome).minuti += Number(dati.minuti) || 0;
+            });
         });
-        Object.entries(partita.giocatori).forEach(([nome, dati]) => {
-            const key = nome;
-            if (!stats[key]) stats[key] = { titolare: 0, minuti: 0 };
-            if (!isNaN(dati.minuti)) stats[key].minuti += dati.minuti;
-        });
-    });
-    mostraStatistichePartite(stats);
+
+        mostraStatistichePartite(stats);
+    } catch (err) {
+        console.error("Errore calcolo statistiche partite:", err);
+    }
 }
 
+/* =========================================================
+   CARICAMENTO E SALVATAGGIO
+   ========================================================= */
+/* Cambiando data velocemente le letture possono tornare fuori ordine:
+   solo l'ultima richiesta ha il diritto di ridisegnare il campo. */
+let letturaCorrente = 0;
+
 async function caricaFormazione(data) {
-    const snap = await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}`).once("value");
-    const partita = snap.val();
+    if (!data) return;
 
-    const titolari = partita?.titolari || [];
-    const panchina = partita?.panchina || [];
-    const moduloSalvato = partita?.modulo || "3-2-1";
-
-    if (selectModulo) selectModulo.value = moduloSalvato;
-    renderCampo();
-
-    const ids = getIdsCorrenti();
-    const modulo = selectModulo.value;
-    const numTitolari = moduli[modulo].flat().length;
-
-    for (let i = 0; i < numTitolari; i++) {
-        if (titolari[i] && ids[i]) {
-            const el = document.getElementById(ids[i]);
-            if (el) el.value = titolari[i];
+    const richiesta = ++letturaCorrente;
+    let partita = null;
+    try {
+        const snap = await window.firebaseDB
+            .ref(ID_SQUADRA + "/partite/" + data)
+            .once("value");
+        partita = snap.val();
+    } catch (err) {
+        console.error("Errore caricamento formazione:", err);
+        if (richiesta === letturaCorrente) {
+            mostraAvviso("Errore nel caricamento della partita", "error");
         }
+        return;
     }
 
-    const idsPanchina = ids.slice(numTitolari);
-    idsPanchina.forEach((id, i) => {
-        if (panchina[i]) {
-            const el = document.getElementById(id);
-            if (el) el.value = panchina[i];
-        }
+    // Nel frattempo l'utente ha scelto un'altra data: questa risposta e' vecchia
+    if (richiesta !== letturaCorrente) return;
+
+    const moduloSalvato = partita && moduli[partita.modulo] ? partita.modulo : MODULO_DEFAULT;
+    if (selectModulo) selectModulo.value = moduloSalvato;
+
+    const slots = idsTitolari(moduloSalvato);
+    const valori = {};
+    [...slots, ...idsPanchina].forEach((id) => (valori[id] = ""));
+
+    if (partita && partita.formazione) {
+        // Formato nuovo: mappa posizione -> giocatore
+        slots.forEach((id) => {
+            if (partita.formazione[id]) valori[id] = partita.formazione[id];
+        });
+    } else if (partita && Array.isArray(partita.titolari)) {
+        // Formato vecchio: array posizionale
+        partita.titolari.forEach((nome, i) => {
+            if (slots[i]) valori[slots[i]] = nome;
+        });
+    }
+
+    (partita && partita.panchina ? partita.panchina : []).forEach((nome, i) => {
+        if (idsPanchina[i]) valori[idsPanchina[i]] = nome;
     });
 
-    // Check if match exists and has players
-    if (partita && partita.titolari && partita.titolari.length > 0) {
-        mostraCampiVoto(titolari, panchina, partita?.giocatori || {});
-    } else {
-        // If no match data, ensure votes are cleared (and Squadra box removed)
-        const container = document.getElementById("votiContainer");
-        if (container) container.innerHTML = "";
+    renderCampo(valori);
+
+    const schierati = Object.values(valori).filter(Boolean);
+    if (partita && schierati.length > 0) {
+        const titolari = slots.map((id) => valori[id]).filter(Boolean);
+        const panchina = idsPanchina.map((id) => valori[id]).filter(Boolean);
+        mostraCampiVoto(titolari, panchina, partita.giocatori || {});
+    } else if (votiContainer) {
+        votiContainer.innerHTML = "";
     }
 
-    // Update button state (Formation vs Pagella)
-    if (typeof aggiornaStatoBottone === 'function') aggiornaStatoBottone();
-    aggiornaOpzioniSelect();
+    aggiornaStatoBottone();
 }
 
 async function salvaFormazione() {
-    const data = dataInput.value;
+    const data = dataInput ? dataInput.value : "";
     if (!data) return mostraAvviso("Inserisci una data", "error");
-    const { titolari, panchina } = getFormazioneCorrente();
-    const modulo = selectModulo.value;
 
-    await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}`).update({
-        data,
-        timestamp: new Date().toISOString(),
-        tipo: "partita",
-        modulo,
-        titolari,
-        panchina,
-    });
-    mostraCampiVoto(titolari, panchina);
+    const { formazione, titolari, panchina } = getFormazioneCorrente();
+    if (titolari.length === 0 && panchina.length === 0) {
+        return mostraAvviso("Schiera almeno un giocatore", "error");
+    }
+
+    // I voti gia' inseriti non devono andare persi al risalvataggio
+    const votiEsistenti = leggiVotiDalDOM();
+
+    try {
+        await window.firebaseDB.ref(ID_SQUADRA + "/partite/" + data).update({
+            data,
+            timestamp: new Date().toISOString(),
+            tipo: "partita",
+            modulo: moduloCorrente(),
+            // Firebase rifiuta gli oggetti vuoti: si scrive null per cancellare il nodo
+            formazione: Object.keys(formazione).length > 0 ? formazione : null,
+            titolari,
+            panchina
+        });
+    } catch (err) {
+        console.error("Errore salvataggio formazione:", err);
+        return mostraAvviso("Errore nel salvataggio della formazione", "error");
+    }
+
+    mostraCampiVoto(titolari, panchina, votiEsistenti);
     mostraAvviso("Formazione salvata");
     document.dispatchEvent(new Event("data-update"));
 }
 
 async function salvaPagella() {
-    const data = dataInput.value;
+    const data = dataInput ? dataInput.value : "";
     if (!data) return mostraAvviso("Inserisci una data", "error");
-    const voti = {};
-    let errore = false;
 
-    document.querySelectorAll(".pc-card").forEach((card) => {
-        const sliderVoto = card.querySelector('.input-voto-slider');
-        if (!sliderVoto) return;
+    const voti = leggiVotiDalDOM();
+    if (Object.keys(voti).length === 0) {
+        return mostraAvviso("Nessuna pagella da salvare", "error");
+    }
 
-        const nome = sliderVoto.dataset.nome;
-        const cbSV = card.querySelector('.cb-sv');
-        const sliderMinuti = card.querySelector('.input-minuti-slider');
-        const commentoInput = card.querySelector('.input-commento');
-
-        // Logic VOTO
-        if (cbSV && cbSV.checked) {
-            voti[nome] = { voto: "S.V.", votoFinale: "S.V." };
-        } else {
-            const votoVal = parseFloat(sliderVoto.value);
-            voti[nome] = { voto: votoVal, votoFinale: votoVal };
-        }
-
-        // Logic COMMENTO
-        if (commentoInput) {
-            if (!voti[nome]) voti[nome] = {};
-            voti[nome].commento = commentoInput.value;
-        }
-
-        // Logic MINUTI (exclude squadra)
-        if (nome !== "Squadra" && sliderMinuti) {
-            const minuti = parseInt(sliderMinuti.value);
-            const haMinuti = !isNaN(minuti);
-
-            if (!voti[nome]) voti[nome] = {};
-            voti[nome].minuti = minuti;
-        }
-    });
-
-    if (errore) return;
-
-    await firebaseDB.ref(`${ID_SQUADRA}/partite/${data}/giocatori`).set(voti);
-    mostraAvviso("Partita salvata");
-    document.dispatchEvent(new Event("data-update"));
-}
-
-// Delegated listener for Campo Actions (Share & Save)
-if (divCampo) {
-    divCampo.addEventListener("click", (e) => {
-        const btnShare = e.target.closest("#actionShare");
-        const btnSave = e.target.closest("#actionSave");
-
-        if (btnSave) {
-            salvaFormazione();
-        } else if (btnShare) {
-            const campo = document.getElementById("campo");
-            campo.classList.add("screenshot-mode");
-
-            // 1. Swap selects with text DIVs for perfect rendering
-            const selects = campo.querySelectorAll("select");
-            const restoreList = [];
-
-            selects.forEach(sel => {
-                const div = document.createElement("div");
-                div.className = "screenshot-replacement";
-                // Get selected text or placeholder
-                const text = sel.options[sel.selectedIndex]?.text || "-";
-                div.textContent = text;
-
-                // Insert div, hide select
-                sel.parentNode.insertBefore(div, sel);
-                sel.style.display = "none";
-                restoreList.push({ select: sel, div: div });
-            });
-
-            html2canvas(campo, {
-                scale: 2,
-                backgroundColor: null,
-                logging: false,
-                useCORS: true
-            }).then((canvas) => {
-                campo.classList.remove("screenshot-mode");
-
-                // 2. Restore selects
-                restoreList.forEach(item => {
-                    item.div.remove();
-                    item.select.style.display = "";
-                });
-
-                canvas.toBlob((blob) => {
-                    condividiImmagine(blob, `formazione_${new Date().toISOString().slice(0, 10)}.png`);
-                });
-            });
-        }
-    });
-}
-
-
-if (dataInput) {
-    dataInput.addEventListener("change", () => {
-        if (dataInput.value) caricaFormazione(dataInput.value);
-    });
-    dataInput.addEventListener("input", () => {
-        if (dataInput.value && dataInput.value.length === 10) {
-            caricaFormazione(dataInput.value);
-        }
-    });
-}
-if (selectModulo) {
-    selectModulo.addEventListener("change", () => {
-        renderCampo();
-        mostraAvviso("Modulo cambiato. Rischiera i giocatori!", "warning");
-    });
-}
-
-
-// Logic for Dual-Purpose Button
-function aggiornaStatoBottone() {
-    const btn = document.getElementById("salvaPagella");
-    const txt = document.getElementById("salvaPagellaText");
-    const container = document.getElementById("votiContainer");
-
-    if (!btn || !txt || !container) return;
-
-    if (container.children.length === 0) {
-        // Mode: Save Formation
-        txt.textContent = "Salva Formazione";
-        // btn.onclick = salvaFormazione; // Better to handle in the listener
-    } else {
-        // Mode: Save Votes
-        txt.textContent = "Salva Pagella";
+    try {
+        await window.firebaseDB
+            .ref(ID_SQUADRA + "/partite/" + data + "/giocatori")
+            .set(voti);
+        mostraAvviso("Partita salvata");
+        document.dispatchEvent(new Event("data-update"));
+    } catch (err) {
+        console.error("Errore salvataggio pagella:", err);
+        mostraAvviso("Errore nel salvataggio della pagella", "error");
     }
 }
 
-// Global listener with logic switch
+/* =========================================================
+   BOTTONI E EVENTI
+   ========================================================= */
+if (divCampo) {
+    divCampo.addEventListener("click", (e) => {
+        if (e.target.closest("#actionSave")) return salvaFormazione();
+        if (!e.target.closest("#actionShare")) return;
+
+        // Le <select> non vengono rese bene da html2canvas: si sostituiscono
+        // temporaneamente con dei div di solo testo.
+        const sostituzioni = [];
+        catturaECondividi(
+            divCampo,
+            "formazione_" + ((dataInput && dataInput.value) || dataOggi()) + ".png",
+            {
+                prima: () => {
+                    divCampo.querySelectorAll("select").forEach((sel) => {
+                        const div = document.createElement("div");
+                        div.className = "screenshot-replacement";
+                        div.textContent = sel.options[sel.selectedIndex]
+                            ? sel.options[sel.selectedIndex].text
+                            : "-";
+                        sel.parentNode.insertBefore(div, sel);
+                        sel.style.display = "none";
+                        sostituzioni.push({ select: sel, div });
+                    });
+                },
+                dopo: () => {
+                    sostituzioni.forEach((item) => {
+                        item.div.remove();
+                        item.select.style.display = "";
+                    });
+                }
+            }
+        );
+    });
+}
+
+/* Finche' non c'e' una data non si mostra nulla che dipenda da essa:
+   il campo data si evidenzia e al suo posto compare un invito discreto. */
+function aggiornaStatoData() {
+    const pagina = document.getElementById("page-partita");
+    if (pagina) pagina.classList.toggle("attesa-data", !(dataInput && dataInput.value));
+}
+
+if (dataInput) {
+    // Un solo evento: "input" e "change" insieme causavano due letture
+    // concorrenti su Firebase a ogni selezione della data.
+    dataInput.addEventListener("change", () => {
+        aggiornaStatoData();
+        if (dataInput.value) {
+            caricaFormazione(dataInput.value);
+        } else if (votiContainer) {
+            votiContainer.innerHTML = "";
+        }
+    });
+}
+
+if (selectModulo) {
+    selectModulo.addEventListener("change", () => {
+        const prima = raccogliValori();
+        renderCampo();
+        const dopo = raccogliValori();
+
+        const persi = Object.values(prima).filter(
+            (n) => n && !Object.values(dopo).includes(n)
+        );
+        if (persi.length > 0) {
+            mostraAvviso("Modulo cambiato: rischiera " + persi.join(", "), "warning");
+        }
+    });
+}
+
+/* Il bottone flottante cambia funzione a seconda dello stato:
+   senza pagelle a video salva la formazione, altrimenti i voti. */
+function aggiornaStatoBottone() {
+    const txt = document.getElementById("salvaPagellaText");
+    if (!txt || !votiContainer) return;
+    txt.textContent =
+        votiContainer.children.length === 0 ? "Salva Formazione" : "Salva Pagella";
+}
+
 if (salvaPagellaBtn) {
-    // Remove old listeners if any (by replacing node or just ensure correct logic)
-    // Since we are using modules, we can just overwrite the logic if we use a specific function
-    salvaPagellaBtn.onclick = async (e) => {
+    salvaPagellaBtn.addEventListener("click", async (e) => {
         e.preventDefault();
-        const container = document.getElementById("votiContainer");
-        if (container && container.children.length === 0) {
-            await salvaFormazione(); // This triggers mostraCampiVoto -> content appears
-            aggiornaStatoBottone(); // switch state
+        if (votiContainer && votiContainer.children.length === 0) {
+            await salvaFormazione();
         } else {
             await salvaPagella();
         }
-    };
+        aggiornaStatoBottone();
+    });
 }
 
-// Hook into state changes
-const observerVoti = new MutationObserver(aggiornaStatoBottone);
 if (votiContainer) {
-    observerVoti.observe(votiContainer, { childList: true });
+    new MutationObserver(aggiornaStatoBottone).observe(votiContainer, {
+        childList: true
+    });
 }
 
-// Initial Logic wrapped in listener
-function initPartitaPage() {
-    renderCampo(); // Will use loaded `giocatori`
+/* =========================================================
+   AVVIO
+   ========================================================= */
+quandoDatiPronti(() => {
+    // Nessuna data preimpostata: la sceglie l'utente, cosi' non si rischia
+    // di salvare per sbaglio sulla giornata di oggi.
+    aggiornaStatoData();
+    renderCampo({});
     calcolaStatistichePartite();
-    popolaSelect(); // Will use loaded `giocatori`
     aggiornaStatoBottone();
-}
 
-// Wait for global data ready event
-document.addEventListener("dati-pronti", () => {
-    console.log("Partita SPA: Dati pronti ricevuti. Inizializzazione pagina.");
-    initPartitaPage();
+    if (dataInput && dataInput.value) caricaFormazione(dataInput.value);
 });
 
-
+// Il riepilogo titolarita'/minuti deve seguire i salvataggi, non restare
+// fermo ai dati letti all'apertura della pagina.
+document.addEventListener("data-update", () => calcolaStatistichePartite());

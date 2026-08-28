@@ -1,130 +1,88 @@
-// allenamenti_spa.js
+// allenamenti_spa.js - inserimento e modifica delle pagelle di allenamento
 import { giocatori as listaGiocatori } from "./giocatori.js";
-import { mostraAvviso, ID_SQUADRA } from "./utils.js";
+import {
+    mostraAvviso,
+    escapeHtml,
+    quandoDatiPronti,
+    ID_SQUADRA
+} from "./utils.js";
 
-const firebaseDB = window.firebaseDB;
 const giocatoriListDiv = document.getElementById("lista-giocatori");
 const form = document.getElementById("allenamentoForm");
+const dataInput = document.getElementById("dataAllenamento");
 
-// Unified Card for Allenamento - Refined
-function creaPlayerCardAllenamento(nome, index) {
-    // Full name used ("mettili completi")
-    return `
-    <div class="pc-card" id="card-all-${index}">
-        <div class="pc-header">
-            <span class="pc-name">${nome}</span>
-            <!-- Modern Present Toggle -->
-             <div style="display:flex; align-items:center;">
-                <span class="pc-switch-label">Presente</span>
-                <label class="pc-switch">
-                    <input type="checkbox" class="cb-presente" data-index="${index}" checked>
-                    <span class="pc-slider-switch"></span>
-                </label>
-            </div>
-        </div>
+// Id del record aperto: se valorizzato si aggiorna, altrimenti se ne crea uno nuovo
+let allenamentoEsistenteId = null;
 
-        <div class="pc-body" id="body-all-${index}">
-            <!-- Voto Slider Row -->
-            <div class="pc-vote-row">
-                <div class="pc-vote-header">
-                    <span class="pc-vote-label">Voto</span>
-                    <span id="valore-all-${index}" class="pc-vote-value">1.00</span>
-                </div>
-                <div class="pc-slider-wrapper">
-                    <input type="range" 
-                           class="input-voto-slider pc-slider input-all" 
-                           min="1" max="10" step="0.25" 
-                           value="1" 
-                           data-index="${index}">
-                </div>
-            </div>
-
-            <!-- Extras (Bonus Toggles) -->
-            <div class="pc-extras-row">
-                ${creaToggle("Atletica", index, "bonusAtletica")}
-                ${creaToggle("Partitella", index, "bonusPartitella")}
-            </div>
-        </div>
-
-        <div class="pc-footer" id="footer-all-${index}">
-            <textarea placeholder="Commento..." 
-                      name="commento"
-                      data-index="${index}" 
-                      class="input-commento pc-comment-input commento-area"></textarea>
-        </div>
-    </div>
-    `;
+/* =========================================================
+   RENDER
+   ========================================================= */
+function creaToggle(label, index, type) {
+    return (
+        '<div class="pc-toggle-box">' +
+        '<label class="pc-toggle-label">' + label + "</label>" +
+        '<div class="toggle-3" data-state="0" data-index="' + index +
+        '" data-type="' + type + '" role="button" tabindex="0" aria-label="' + label + ' bonus">' +
+        '<div class="dot"></div><div class="etichetta-toggle">0%</div>' +
+        "</div></div>"
+    );
 }
 
-// Global delegated listeners for allenamenti
-document.addEventListener('input', (e) => {
-    if (e.target.classList.contains('input-all')) {
-        const index = e.target.dataset.index;
-        const val = parseFloat(e.target.value).toFixed(2);
-        const span = document.getElementById(`valore-all-${index}`);
-        if (span) span.textContent = val;
-    }
-});
-
-document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('cb-presente')) {
-        const index = e.target.dataset.index;
-        const card = document.getElementById(`card-all-${index}`);
-        const body = document.getElementById(`body-all-${index}`);
-        const footer = document.getElementById(`footer-all-${index}`);
-
-        if (e.target.checked) {
-            body.style.display = "flex";
-            footer.style.display = "block";
-            card.classList.remove('disabled');
-        } else {
-            body.style.display = "none";
-            footer.style.display = "none";
-            card.classList.add('disabled');
-        }
-    }
-});
-
-
-// Funzione: crea un toggle 3 stati
-// Keep logic but ensure style matches context if needed (handled by CSS scale)
-function creaToggle(label, index, type) {
-    return `
-  <div style="display: flex; gap: 8px; align-items: center;">
-    <label style="font-size: 0.75rem; font-weight:bold; color:var(--testo-muted);">${label}</label>
-    <div class="toggle-3" data-state="0" data-index="${index}" data-type="${type}" aria-label="${label} Bonus">
-      <div class="dot"></div>
-      <div class="etichetta-toggle">0%</div>
-    </div>
-  </div>`;
+function creaPlayerCardAllenamento(nome, index) {
+    return (
+        '<div class="pc-card" id="card-all-' + index + '">' +
+        '<div class="pc-header">' +
+        '<span class="pc-name">' + escapeHtml(nome) + "</span>" +
+        '<div class="pc-switch-box">' +
+        '<span class="pc-switch-label">Presente</span>' +
+        '<label class="pc-switch">' +
+        '<input type="checkbox" class="cb-presente" data-index="' + index + '" checked>' +
+        '<span class="pc-slider-switch"></span>' +
+        "</label></div></div>" +
+        '<div class="pc-body" id="body-all-' + index + '">' +
+        '<div class="pc-vote-row">' +
+        '<div class="pc-vote-header">' +
+        '<span class="pc-vote-label">Voto</span>' +
+        '<span id="valore-all-' + index + '" class="pc-vote-value">1.00</span>' +
+        "</div>" +
+        '<div class="pc-slider-wrapper">' +
+        '<input type="range" class="input-voto-slider pc-slider input-all" min="1" max="10" step="0.25" value="1" data-index="' +
+        index + '">' +
+        "</div></div>" +
+        '<div class="pc-extras-row">' +
+        creaToggle("Atletica", index, "bonusAtletica") +
+        creaToggle("Partitella", index, "bonusPartitella") +
+        "</div></div>" +
+        '<div class="pc-footer" id="footer-all-' + index + '">' +
+        '<textarea placeholder="Commento..." name="commento" data-index="' + index +
+        '" class="input-commento pc-comment-input commento-area"></textarea>' +
+        "</div></div>"
+    );
 }
 
 function initAllenamenti() {
     if (!giocatoriListDiv) return;
-    giocatoriListDiv.innerHTML = "";
 
-    // Crea dinamicamente la lista dei giocatori
-    listaGiocatori.forEach((nome, index) => {
-        const div = document.createElement("div");
-        div.innerHTML = creaPlayerCardAllenamento(nome, index);
-        giocatoriListDiv.appendChild(div.firstElementChild);
-    });
+    if (listaGiocatori.length === 0) {
+        giocatoriListDiv.innerHTML =
+            '<p class="lista-vuota">Nessun giocatore in rosa (' +
+            escapeHtml(ID_SQUADRA) +
+            "/rosa)</p>";
+        return;
+    }
 
-    // Re-attach toggle listeners
-    document.querySelectorAll(".toggle-3").forEach((toggle) => {
-        toggle.addEventListener("click", () => {
-            let current = parseInt(toggle.dataset.state);
-            const next = current === 1 ? -1 : current + 1;
-            toggle.dataset.state = next.toString();
-            aggiornaToggleVisual(toggle);
-        });
-        aggiornaToggleVisual(toggle);
-    });
+    giocatoriListDiv.innerHTML = listaGiocatori
+        .map((nome, index) => creaPlayerCardAllenamento(nome, index))
+        .join("");
+
+    document.querySelectorAll("#lista-giocatori .toggle-3").forEach(aggiornaToggleVisual);
 }
 
-// Gestione toggle 3 stati con feedback visivo
+/* =========================================================
+   TOGGLE A 3 STATI (-5% / 0% / +5%)
+   ========================================================= */
 function aggiornaToggleVisual(toggle) {
-    const stato = parseInt(toggle.dataset.state);
+    const stato = parseInt(toggle.dataset.state, 10) || 0;
     const etichetta = toggle.querySelector(".etichetta-toggle");
 
     toggle.classList.remove("negativo", "neutro", "positivo");
@@ -141,248 +99,224 @@ function aggiornaToggleVisual(toggle) {
     }
 }
 
-// Submit del form
-// Variabile globale per tracciare se stiamo modificando un allenamento esistente
-let allenamentoEsistenteId = null;
+function ciclaToggle(toggle) {
+    const corrente = parseInt(toggle.dataset.state, 10) || 0;
+    toggle.dataset.state = String(corrente === 1 ? -1 : corrente + 1);
+    aggiornaToggleVisual(toggle);
+}
 
-async function caricaAllenamento(dataSelezionata) {
-    if (!dataSelezionata) return;
+// Delegato: sopravvive al re-render della lista giocatori
+document.addEventListener("click", (e) => {
+    const toggle = e.target.closest("#lista-giocatori .toggle-3");
+    if (toggle) ciclaToggle(toggle);
+});
 
-    // Reset form to clean state first (default values)
-    // But keep the date!
-    const savedDate = dataSelezionata;
+document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const toggle = e.target.closest("#lista-giocatori .toggle-3");
+    if (!toggle) return;
+    e.preventDefault();
+    ciclaToggle(toggle);
+});
 
-    // Reset visuals default
-    document.querySelectorAll(".cb-presente").forEach(cb => {
-        cb.checked = true;
-        const index = cb.dataset.index;
-        const body = document.getElementById(`body-all-${index}`);
-        const footer = document.getElementById(`footer-all-${index}`);
-        const card = document.getElementById(`card-all-${index}`);
-        if (body) body.style.display = "flex";
-        if (footer) footer.style.display = "block";
-        if (card) card.classList.remove('disabled');
+/* =========================================================
+   STATO DELLE CARD
+   ========================================================= */
+function impostaPresenza(index, presente) {
+    const card = document.getElementById("card-all-" + index);
+    const body = document.getElementById("body-all-" + index);
+    const footer = document.getElementById("footer-all-" + index);
+    const cb = document.querySelector('.cb-presente[data-index="' + index + '"]');
+
+    if (cb) cb.checked = presente;
+    if (body) body.style.display = presente ? "flex" : "none";
+    if (footer) footer.style.display = presente ? "block" : "none";
+    if (card) card.classList.toggle("disabled", !presente);
+}
+
+function impostaVoto(index, voto) {
+    const slider = document.querySelector('.input-all[data-index="' + index + '"]');
+    const span = document.getElementById("valore-all-" + index);
+    const valore = isNaN(parseFloat(voto)) ? 1 : parseFloat(voto);
+    if (slider) slider.value = valore;
+    if (span) span.textContent = valore.toFixed(2);
+}
+
+function impostaToggle(index, type, valore) {
+    const toggle = document.querySelector(
+        '.toggle-3[data-index="' + index + '"][data-type="' + type + '"]'
+    );
+    if (!toggle) return;
+    toggle.dataset.state = String(parseInt(valore, 10) || 0);
+    aggiornaToggleVisual(toggle);
+}
+
+function impostaCommento(index, testo) {
+    const area = document.querySelector(
+        'textarea[name="commento"][data-index="' + index + '"]'
+    );
+    if (area) area.value = testo || "";
+}
+
+function resetForm() {
+    listaGiocatori.forEach((_, index) => {
+        impostaPresenza(index, true);
+        impostaVoto(index, 1);
+        impostaToggle(index, "bonusAtletica", 0);
+        impostaToggle(index, "bonusPartitella", 0);
+        impostaCommento(index, "");
     });
-    document.querySelectorAll(".input-all").forEach(sl => {
-        sl.value = 1;
-        const index = sl.dataset.index;
-        const span = document.getElementById(`valore-all-${index}`);
-        if (span) span.textContent = "1.00";
-    });
-    document.querySelectorAll(".toggle-3").forEach((toggle) => {
-        toggle.dataset.state = "0";
-        aggiornaToggleVisual(toggle);
-    });
-    document.querySelectorAll("textarea[name='commento']").forEach(tx => tx.value = "");
+}
 
-    // Query Firebase
+document.addEventListener("change", (e) => {
+    if (!e.target.classList.contains("cb-presente")) return;
+    impostaPresenza(e.target.dataset.index, e.target.checked);
+});
+
+/* =========================================================
+   CARICAMENTO PER DATA
+   ========================================================= */
+async function trovaAllenamentoPerData(data) {
+    const snap = await window.firebaseDB.ref(ID_SQUADRA + "/allenamenti").once("value");
+    const allenamenti = snap.val();
+    if (!allenamenti) return null;
+
+    const trovati = Object.entries(allenamenti).filter(([, d]) => d.data === data);
+    if (trovati.length === 0) return null;
+    if (trovati.length > 1) {
+        console.warn("Attenzione: " + trovati.length + " allenamenti con data " + data);
+    }
+    return { id: trovati[0][0], dati: trovati[0][1] };
+}
+
+async function caricaAllenamento(data) {
+    if (!data) return;
+
+    resetForm();
+    allenamentoEsistenteId = null;
+
     try {
-        const snap = await firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).once("value");
-        const allenamenti = snap.val();
-        if (!allenamenti) return;
+        const trovato = await trovaAllenamentoPerData(data);
+        if (!trovato) return;
 
-        let allenamentoTrovato = null;
-        let idTrovato = null;
+        allenamentoEsistenteId = trovato.id;
+        const giocatoriDati = trovato.dati.giocatori || {};
 
-        // Search by date (filtering client-side as structure is push-id based)
-        for (const [id, dati] of Object.entries(allenamenti)) {
-            if (dati.data === savedDate) {
-                allenamentoTrovato = dati;
-                idTrovato = id;
-                break;
-            }
-        }
+        listaGiocatori.forEach((nome, index) => {
+            const dati = giocatoriDati[nome];
+            if (!dati) return impostaPresenza(index, false);
 
-        if (allenamentoTrovato) {
-            allenamentoEsistenteId = idTrovato;
-            mostraAvviso("Allenamento esistente caricato!", "success");
+            impostaPresenza(index, true);
+            impostaVoto(index, dati.voto);
+            impostaToggle(index, "bonusAtletica", dati.bonusAtletica);
+            impostaToggle(index, "bonusPartitella", dati.bonusPartitella);
+            impostaCommento(index, dati.commento);
+        });
 
-            // Populate Form
-            const giocatoriDati = allenamentoTrovato.giocatori || {};
-
-            listaGiocatori.forEach((nome, index) => {
-                const datiGiocatore = giocatoriDati[nome];
-
-                const card = document.getElementById(`card-all-${index}`);
-                const presenceCb = document.querySelector(`.cb-presente[data-index="${index}"]`);
-                const slider = document.querySelector(`.input-all[data-index="${index}"]`);
-                const commentoInput = document.querySelector(`textarea[name="commento"][data-index="${index}"]`);
-                const toggleAtletica = document.querySelector(`.toggle-3[data-index="${index}"][data-type="bonusAtletica"]`);
-                const togglePartitella = document.querySelector(`.toggle-3[data-index="${index}"][data-type="bonusPartitella"]`);
-                const spanValore = document.getElementById(`valore-all-${index}`);
-
-                if (datiGiocatore) {
-                    // Presente
-                    if (presenceCb) {
-                        presenceCb.checked = true;
-                        // Force UI Update directly
-                        const body = document.getElementById(`body-all-${index}`);
-                        const footer = document.getElementById(`footer-all-${index}`);
-                        if (body) body.style.display = "flex";
-                        if (footer) footer.style.display = "block";
-                        if (card) card.classList.remove('disabled');
-                    }
-
-                    // Voto
-                    if (slider) {
-                        slider.value = datiGiocatore.voto;
-                        if (spanValore) spanValore.textContent = Number(datiGiocatore.voto).toFixed(2);
-                    }
-
-                    // Toggles
-                    if (toggleAtletica) {
-                        toggleAtletica.dataset.state = (datiGiocatore.bonusAtletica || 0).toString();
-                        aggiornaToggleVisual(toggleAtletica);
-                    }
-                    if (togglePartitella) {
-                        togglePartitella.dataset.state = (datiGiocatore.bonusPartitella || 0).toString();
-                        aggiornaToggleVisual(togglePartitella);
-                    }
-
-                    // Commento
-                    if (commentoInput) commentoInput.value = datiGiocatore.commento || "";
-
-                } else {
-                    // Assente in this record -> unchecked
-                    if (presenceCb) {
-                        presenceCb.checked = false;
-                        // Force UI Update directly
-                        const body = document.getElementById(`body-all-${index}`);
-                        const footer = document.getElementById(`footer-all-${index}`);
-                        if (body) body.style.display = "none";
-                        if (footer) footer.style.display = "none";
-                        if (card) card.classList.add('disabled');
-                    }
-                }
-            });
-
-        } else {
-            allenamentoEsistenteId = null; // New entry
-            // mostraAvviso("Nessun allenamento trovato per questa data.", "success");
-        }
-    } catch (e) {
-        console.error("Errore caricamento allenamento", e);
+        mostraAvviso("Allenamento esistente caricato");
+    } catch (err) {
+        console.error("Errore caricamento allenamento:", err);
+        mostraAvviso("Errore nel caricamento dell'allenamento", "error");
     }
 }
 
+/* =========================================================
+   SALVATAGGIO
+   ========================================================= */
+function raccogliAllenamento(data) {
+    const allenamento = {
+        tipo: "allenamento",
+        data,
+        timestamp: new Date().toISOString(),
+        giocatori: {}
+    };
+
+    listaGiocatori.forEach((nome, index) => {
+        const cb = document.querySelector('.cb-presente[data-index="' + index + '"]');
+        if (!cb || !cb.checked) return; // assente: non finisce nel record
+
+        const slider = document.querySelector('.input-all[data-index="' + index + '"]');
+        const voto = parseFloat(slider && slider.value);
+        if (isNaN(voto)) return;
+
+        const stato = (type) => {
+            const t = document.querySelector(
+                '.toggle-3[data-index="' + index + '"][data-type="' + type + '"]'
+            );
+            return t ? parseInt(t.dataset.state, 10) || 0 : 0;
+        };
+
+        const bonusAtletica = stato("bonusAtletica");
+        const bonusPartitella = stato("bonusPartitella");
+        const bonusPercent = (bonusAtletica + bonusPartitella) * 0.05;
+        const votoFinale = parseFloat((voto * (1 + bonusPercent)).toFixed(2));
+
+        const area = document.querySelector(
+            'textarea[name="commento"][data-index="' + index + '"]'
+        );
+
+        allenamento.giocatori[nome] = {
+            voto,
+            bonusAtletica,
+            bonusPartitella,
+            votoFinale,
+            commento: area ? area.value : ""
+        };
+    });
+
+    return allenamento;
+}
+
+/* Finche' non c'e' una data non si mostra la lista giocatori:
+   il campo data si evidenzia e al suo posto compare un invito discreto. */
+function aggiornaStatoData() {
+    const pagina = document.getElementById("page-allenamento");
+    if (pagina) pagina.classList.toggle("attesa-data", !(dataInput && dataInput.value));
+}
 
 if (form) {
-    // Add Listener for Date Change
-    const dataInput = document.getElementById("dataAllenamento");
     if (dataInput) {
         dataInput.addEventListener("change", (e) => {
-            caricaAllenamento(e.target.value);
+            aggiornaStatoData();
+            if (e.target.value) caricaAllenamento(e.target.value);
+            else resetForm();
         });
     }
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const dataAllenamento = document.getElementById("dataAllenamento").value;
-        const isAllenamento = true;
+        const data = dataInput ? dataInput.value : "";
+        if (!data) return mostraAvviso("Inserisci una data", "error");
 
-        const allenamento = {
-            tipo: "allenamento",
-            data: dataAllenamento,
-            timestamp: new Date().toISOString(),
-            giocatori: {},
-        };
-
-        let hasVotes = false;
-
-        listaGiocatori.forEach((nome, index) => {
-            // Check presence
-            const presenceCb = document.querySelector(`.cb-presente[data-index="${index}"]`);
-            if (!presenceCb || !presenceCb.checked) return; // Skip absent players
-
-            const slider = document.querySelector(
-                `.input-all[data-index="${index}"]`
-            );
-            const commentoInput = document.querySelector(
-                `textarea[name="commento"][data-index="${index}"]`
-            );
-            const toggleAtletica = document.querySelector(
-                `.toggle-3[data-index="${index}"][data-type="bonusAtletica"]`
-            );
-            const togglePartitella = document.querySelector(
-                `.toggle-3[data-index="${index}"][data-type="bonusPartitella"]`
-            );
-
-            const voto = parseFloat(slider?.value);
-            if (isNaN(voto)) return;
-
-            const bonusAtletica = isAllenamento
-                ? parseInt(toggleAtletica?.dataset.state || "0")
-                : 0;
-            const bonusPartitella = isAllenamento
-                ? parseInt(togglePartitella?.dataset.state || "0")
-                : 0;
-            const bonusPercent = (bonusAtletica + bonusPartitella) * 0.05;
-            const votoFinale = parseFloat((voto * (1 + bonusPercent)).toFixed(2));
-
-            if (!isNaN(voto)) {
-                hasVotes = true;
-                allenamento.giocatori[nome] = {
-                    voto,
-                    bonusAtletica,
-                    bonusPartitella,
-                    votoFinale,
-                    commento: commentoInput?.value || "",
-                };
-            }
-        });
-
-        if (!hasVotes) {
-            mostraAvviso("Nessun giocatore ha un voto (o segnato presente)", "error");
-            return;
+        const allenamento = raccogliAllenamento(data);
+        if (Object.keys(allenamento.giocatori).length === 0) {
+            return mostraAvviso("Nessun giocatore presente con un voto", "error");
         }
 
         try {
-            if (allenamentoEsistenteId) {
-                // UPDATE existing
-                await firebaseDB.ref(`${ID_SQUADRA}/allenamenti/${allenamentoEsistenteId}`).update(allenamento);
-                mostraAvviso("Allenamento aggiornato!", "success");
-            } else {
-                // CREATE new
-                await firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).push(allenamento);
-                mostraAvviso("Allenamento salvato", "success");
+            // Se il record non e' gia' aperto si ricontrolla per data:
+            // evita di creare un duplicato salvando due volte di seguito.
+            if (!allenamentoEsistenteId) {
+                const trovato = await trovaAllenamentoPerData(data);
+                if (trovato) allenamentoEsistenteId = trovato.id;
             }
 
-            // Refresh global data
+            if (allenamentoEsistenteId) {
+                await window.firebaseDB
+                    .ref(ID_SQUADRA + "/allenamenti/" + allenamentoEsistenteId)
+                    .set(allenamento);
+                mostraAvviso("Allenamento aggiornato");
+            } else {
+                const nuovo = await window.firebaseDB
+                    .ref(ID_SQUADRA + "/allenamenti")
+                    .push(allenamento);
+                // Si conserva l'id: un secondo salvataggio aggiorna, non duplica
+                allenamentoEsistenteId = nuovo.key;
+                mostraAvviso("Allenamento salvato");
+            }
+
             document.dispatchEvent(new Event("data-update"));
-
-            // Reset (optional, or keep data visible? Usually reset for next input)
-            // If we reset, we lose the context of what we just edited.
-            // But traditionally forms reset. User can always reload date to see it again.
-            // Let's reset but maybe clear the date? Or keep date?
-            // Resetting form clears date too usually.
-            form.reset();
-            allenamentoEsistenteId = null;
-
-            // Reset visual state
-            document.querySelectorAll(".cb-presente").forEach(cb => {
-                cb.checked = true;
-                const index = cb.dataset.index;
-                const body = document.getElementById(`body-all-${index}`);
-                const footer = document.getElementById(`footer-all-${index}`);
-                const card = document.getElementById(`card-all-${index}`);
-                if (body) body.style.display = "flex";
-                if (footer) footer.style.display = "block";
-                if (card) card.classList.remove('disabled');
-            });
-            document.querySelectorAll(".input-all").forEach(sl => {
-                sl.value = 1;
-                const index = sl.dataset.index;
-                const span = document.getElementById(`valore-all-${index}`);
-                if (span) span.textContent = "1.00";
-            });
-
-            document.querySelectorAll(".toggle-3").forEach((toggle) => {
-                toggle.dataset.state = "0";
-                aggiornaToggleVisual(toggle);
-            });
-
-            window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (err) {
             console.error("Errore nel salvataggio:", err);
             mostraAvviso("Errore nel salvataggio", "error");
@@ -390,7 +324,14 @@ if (form) {
     });
 }
 
-document.addEventListener("dati-pronti", () => {
-    console.log("Allenamenti SPA: Dati pronti ricevuti.");
+/* =========================================================
+   AVVIO
+   ========================================================= */
+quandoDatiPronti(() => {
     initAllenamenti();
+
+    // Nessuna data preimpostata: la sceglie l'utente, cosi' non si rischia
+    // di salvare per sbaglio sulla giornata di oggi.
+    aggiornaStatoData();
+    if (dataInput && dataInput.value) caricaAllenamento(dataInput.value);
 });

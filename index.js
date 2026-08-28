@@ -1,60 +1,71 @@
-// index.js (modificato per gestire "S.V." e DB Rosa)
-import { giocatori as listaGiocatori, caricaGiocatori } from "./giocatori.js";
-import { abbreviaNome } from "./giocatori.js";
-import { mostraAvviso, condividiImmagine, ID_SQUADRA } from "./utils.js";
+// index.js - avvio app, motore statistiche, cronologia e scheda giocatore
+import { giocatori as rosa, caricaGiocatori, abbreviaNome } from "./giocatori.js";
+import {
+  mostraAvviso,
+  catturaECondividi,
+  escapeHtml,
+  formattaData,
+  ID_SQUADRA,
+  SQUADRA,
+  RAMO_ARCHIVIO,
+  applicaIdentitaSquadra,
+  segnalaDatiPronti
+} from "./utils.js";
+import { initRouter } from "./router.js";
+import {
+  calcolaStatistiche,
+  confrontaCrescente,
+  dataEvento,
+  estraiVoto,
+  nomiEvento,
+  nuovoRecord,
+  mediaFinale,
+  mediaUltimi,
+  mediaVoti,
+  classeMedia
+} from "./statistiche.js";
 
-// Register Service Worker for PWA
+applicaIdentitaSquadra();
+initRouter();
+
+/* =========================================================
+   SERVICE WORKER
+   ========================================================= */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js")
-      .then(() => console.log("Service Worker registrato!"))
+      .then((reg) => {
+        reg.addEventListener("updatefound", () => {
+          const nuovo = reg.installing;
+          if (!nuovo) return;
+          nuovo.addEventListener("statechange", () => {
+            if (nuovo.state === "installed" && navigator.serviceWorker.controller) {
+              mostraAvviso("Aggiornamento disponibile: ricarica la pagina");
+            }
+          });
+        });
+      })
       .catch((err) => console.log("Service Worker fallito:", err));
   });
 }
 
-// Will be populated after DB load
-let giocatori = [];
+/* =========================================================
+   STATO
+   ========================================================= */
+const stato = {
+  allenamenti: [], // ordine decrescente (piu' recenti in alto)
+  partite: [],
+  statsAllenamento: {},
+  statsPartita: {}
+};
 
-const storicoDiv = document.getElementById("storicoContainer");
-const statsDiv = document.getElementById("statisticheContainer");
-
-const statsAllenamento = {};
-const statsPartita = {};
-let numeroAllenamenti = 0;
-const assenzeAllenamento = {};
-
-function inizializzaStats() {
-  // Ensure "Squadra" is always present for logic
-  const fullList = [...listaGiocatori, "Squadra"];
-  // Update local variable for use in other functions
-  giocatori = fullList;
-
-  giocatori.forEach((nome) => {
-    statsAllenamento[nome] = { presenze: 0, sommaVoti: 0, media: 0, votiHistory: [] };
-    statsPartita[nome] = {
-      presenze: 0,
-      sommaVoti: 0,
-      media: 0,
-      minuti: 0,
-      _conteggioMedia: 0,
-      votiHistory: [] // New: Array to store all votes for MV3 calc
-    };
-    assenzeAllenamento[nome] = 0;
-  });
-}
-
-function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
-  const tipo = all.tipo || "allenamento";
-  if (tipo === "allenamento") numeroAllenamenti++;
-
+/* =========================================================
+   CRONOLOGIA
+   ========================================================= */
+function creaEvento(ev, tipo) {
   const tipoCapitalizzato = tipo.charAt(0).toUpperCase() + tipo.slice(1);
-
-  let data = all.data || new Date(all.timestamp).toLocaleDateString("it-IT");
-  if (all.data) {
-    const [yyyy, mm, dd] = all.data.split("-");
-    data = `${dd}/${mm}/${yyyy}`;
-  }
+  const dataVisibile = formattaData(dataEvento(ev)) || "-";
 
   const container = document.createElement("div");
   container.className = "evento-container";
@@ -62,24 +73,28 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   const header = document.createElement("div");
   header.className = "evento-header";
 
-  /* Modern Event Header */
-  const icona = tipo === "partita" ? `<i class="fas fa-futbol"></i>` : `<i class="fas fa-running"></i>`;
-  const coloreIcona = tipo === "partita" ? "#3b82f6" : "#10b981"; // Blue vs Green accent
+  const icona =
+    tipo === "partita"
+      ? '<i class="fas fa-futbol"></i>'
+      : '<i class="fas fa-running"></i>';
+  const coloreIcona = tipo === "partita" ? "#3b82f6" : "#10b981";
 
   const headerLeft = document.createElement("div");
   headerLeft.className = "evento-left";
-  headerLeft.innerHTML = `
-    <div class="evento-icon-box" style="background-color: ${coloreIcona}20; color: ${coloreIcona};">
-      ${icona}
-    </div>
-    <div class="evento-info">
-      <span class="evento-tipo">${tipoCapitalizzato}</span>
-      <span class="evento-data">${data}</span>
-    </div>
-  `;
+  headerLeft.innerHTML =
+    '<div class="evento-icon-box" style="background-color: ' +
+    coloreIcona +
+    "20; color: " +
+    coloreIcona +
+    ';">' +
+    icona +
+    '</div><div class="evento-info"><span class="evento-tipo">' +
+    tipoCapitalizzato +
+    '</span><span class="evento-data">' +
+    dataVisibile +
+    "</span></div>";
 
-  /* Check if match has votes (is done) or just formation (pending) */
-  const haVoti = all.giocatori && Object.keys(all.giocatori).length > 0;
+  const haVoti = ev.giocatori && Object.keys(ev.giocatori).length > 0;
   const isDaSvolgere = tipo === "partita" && !haVoti;
 
   const headerRight = document.createElement("div");
@@ -87,56 +102,54 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
 
   const toggleIcon = document.createElement("span");
   toggleIcon.className = "toggle-icon";
-
   if (isDaSvolgere) {
-    toggleIcon.innerHTML = `<span class="badge-pending">Da Svolgere</span>`;
-    toggleIcon.style.transform = "none"; // Disable rotation
+    toggleIcon.innerHTML = '<span class="badge-pending">Da Svolgere</span>';
+    toggleIcon.style.transform = "none";
     toggleIcon.style.fontSize = "0.75rem";
     toggleIcon.style.opacity = "0.8";
   } else {
-    toggleIcon.innerHTML = `<i class="fas fa-chevron-down"></i>`;
+    toggleIcon.innerHTML = '<i class="fas fa-chevron-down"></i>';
   }
 
-  header.appendChild(headerLeft);
-  header.appendChild(headerRight);
-  // headerRight.appendChild(toggleIcon); // Moved below actions
+  const dettaglio = document.createElement("div");
+  dettaglio.className = "evento-dettaglio nascosto";
 
-  /* Buttons Logic Moved Here */
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn-elimina-icon";
-  deleteBtn.innerHTML = `<i class="fas fa-trash"></i>`;
+  deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
   deleteBtn.title = "Elimina";
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (confirm("Sei sicuro di voler eliminare questo elemento?")) {
-      firebaseDB
-        .ref(`${ID_SQUADRA}/${tipo === "partita" ? "partite" : "allenamenti"}`)
-        .child(all.id)
-        .remove()
-        .then(() => {
-          const genere = tipo === "partita" ? "eliminata" : "eliminato";
-          mostraAvviso(`${tipoCapitalizzato} ${genere}`, "success");
-          document.dispatchEvent(new Event("data-update"));
-        })
-        .catch(() => {
-          mostraAvviso("Errore durante l'eliminazione", "error");
-        });
-    }
+    const cosa = tipo === "partita" ? "questa partita" : "questo allenamento";
+    if (!confirm("Vuoi eliminare " + cosa + " del " + dataVisibile + "?")) return;
+
+    const ramo = tipo === "partita" ? "partite" : "allenamenti";
+    window.firebaseDB
+      .ref(ID_SQUADRA + "/" + ramo)
+      .child(ev.id)
+      .remove()
+      .then(() => {
+        mostraAvviso(
+          tipoCapitalizzato + (tipo === "partita" ? " eliminata" : " eliminato")
+        );
+        document.dispatchEvent(new Event("data-update"));
+      })
+      .catch(() => mostraAvviso("Errore durante l'eliminazione", "error"));
   });
 
   const copiaBtn = document.createElement("button");
   copiaBtn.className = "btn-copia-icon";
-  copiaBtn.innerHTML = `<i class="fas fa-share-nodes"></i>`;
-  copiaBtn.title = "Copia evento come immagine";
+  copiaBtn.innerHTML = '<i class="fas fa-share-nodes"></i>';
+  copiaBtn.title = "Condividi come immagine";
   copiaBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    container.classList.add("screenshot-mode");
-    // Use hex for dark background to avoid white corners issues if transparency fails
-    html2canvas(container, { backgroundColor: null }).then((canvas) => {
-      container.classList.remove("screenshot-mode");
-      canvas.toBlob((blob) => {
-        condividiImmagine(blob, `evento_${all.id}.png`);
-      });
+    // Lo screenshot deve mostrare i voti: se il dettaglio e' chiuso lo apre e poi richiude
+    const eraChiuso = dettaglio.classList.contains("nascosto");
+    if (eraChiuso) dettaglio.classList.remove("nascosto");
+    catturaECondividi(container, tipo + "_" + dataEvento(ev) + ".png", {
+      dopo: () => {
+        if (eraChiuso) dettaglio.classList.add("nascosto");
+      }
     });
   });
 
@@ -147,83 +160,62 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
 
   headerRight.appendChild(headerActions);
   headerRight.appendChild(toggleIcon);
-
   header.appendChild(headerLeft);
   header.appendChild(headerRight);
 
-  const dettaglio = document.createElement("div");
-  dettaglio.className = "evento-dettaglio nascosto";
-
-  // Only build table if NOT pending
   if (!isDaSvolgere) {
     const table = document.createElement("table");
     table.className = "mini-tabella";
 
-    giocatori.forEach((nome, index) => {
-      if (tipo === "allenamento" && nome.trim().toLowerCase() === "squadra")
-        return;
-
+    nomiEvento(ev, tipo, rosa).forEach((nome, index) => {
       const tr = document.createElement("tr");
       tr.className = index % 2 === 0 ? "riga-pari" : "riga-dispari";
 
-      const presente = all.giocatori && all.giocatori[nome] !== undefined;
-      const votoRaw =
-        all.giocatori?.[nome]?.votoFinale ?? all.giocatori?.[nome]?.voto;
-      const voto = votoRaw === "S.V." ? NaN : parseFloat(votoRaw);
-      const minuti = all.giocatori?.[nome]?.minuti;
-      const commento = all.giocatori?.[nome]?.commento || "";
-      const abbreviazione = abbreviaNome(nome);
+      const dati = ev.giocatori && ev.giocatori[nome];
+      const { valore, sv } = estraiVoto(dati);
+      const fuoriRosa = nome !== "Squadra" && rosa.indexOf(nome) === -1;
 
       const tdNomeVoto = document.createElement("td");
       const tdCommento = document.createElement("td");
       tdNomeVoto.classList.add("col-nome");
       tdCommento.classList.add("col-commento");
 
-      if (presente) {
-        const ultimoVoti =
-          tipo === "partita" ? backupUltimaPartita : backupUltimoAllenamento;
-        const votoPrecedente = ultimoVoti[nome];
-        let freccia = "",
-          classe = "";
-        if (!isNaN(voto) && !isNaN(votoPrecedente)) {
-          if (voto > votoPrecedente) {
-            freccia = "⬆︎";
-            classe = "migliorato";
-          } else if (voto < votoPrecedente) {
-            freccia = "⬇︎";
-            classe = "peggiorato";
-          }
-        }
-        ultimoVoti[nome] = voto;
+      let etichetta = abbreviaNome(nome);
+      if (fuoriRosa) etichetta += " *";
 
-        const votoDisplay =
-          votoRaw === "S.V." ? "S.V." : isNaN(voto) ? "-" : voto;
-        tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> ${votoDisplay} <span class="freccia ${classe}">${freccia}</span>`;
-        tdCommento.textContent = commento;
+      if (dati) {
+        const direzione = ev._frecce && ev._frecce[nome];
+        const freccia = direzione === "su" ? "⬆︎" : direzione === "giu" ? "⬇︎" : "";
+        const classeFreccia =
+          direzione === "su" ? "migliorato" : direzione === "giu" ? "peggiorato" : "";
 
-        const stats =
-          tipo === "partita" ? statsPartita[nome] : statsAllenamento[nome];
-        stats.presenze++;
+        let votoDisplay;
+        if (sv) votoDisplay = "S.V.";
+        else if (isNaN(valore)) votoDisplay = "-";
+        else votoDisplay = valore.toFixed(2).replace(/\.00$/, "");
 
-        if (tipo === "partita") {
-          if (!isNaN(minuti)) stats.minuti += minuti;
-          if (!isNaN(voto)) {
-            stats.sommaVoti += voto;
-            stats._conteggioMedia++;
-          }
-        } else {
-          if (!isNaN(voto)) stats.sommaVoti += voto;
-        }
+        const minuti = sv ? 0 : Number(dati.minuti) || 0;
+        const dettaglioMinuti =
+          tipo === "partita" && nome !== "Squadra" && !sv && minuti > 0
+            ? ' <span class="evento-minuti">' + minuti + "'</span>"
+            : "";
 
-        // Generic History Push (for both matches and trainings)
-        if (!isNaN(voto)) {
-          // Use timestamp if avail, else fallback
-          stats.votiHistory.push({ voto: voto, timestamp: all.timestamp });
-        }
+        tdNomeVoto.innerHTML =
+          "<strong>" +
+          escapeHtml(etichetta) +
+          "</strong><br /> " +
+          votoDisplay +
+          dettaglioMinuti +
+          ' <span class="freccia ' +
+          classeFreccia +
+          '">' +
+          freccia +
+          "</span>";
+        tdCommento.textContent = dati.commento || "";
       } else {
-        tdNomeVoto.innerHTML = `<strong>${abbreviazione}</strong><br /> assente`;
+        tdNomeVoto.innerHTML =
+          "<strong>" + escapeHtml(etichetta) + "</strong><br /> assente";
         tdCommento.textContent = "";
-        if (tipo === "allenamento") assenzeAllenamento[nome]++;
       }
 
       tr.appendChild(tdNomeVoto);
@@ -232,20 +224,17 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
     });
 
     dettaglio.appendChild(table);
-  }
 
-  // Only enable toggle if NOT pending
-  if (!isDaSvolgere) {
     header.addEventListener("click", () => {
       const aperto = !dettaglio.classList.contains("nascosto");
       dettaglio.classList.toggle("nascosto");
-      container.classList.toggle("expanded"); // Add expanded class for styling
+      container.classList.toggle("expanded");
       toggleIcon.style.transform = aperto ? "rotate(0deg)" : "rotate(180deg)";
     });
-    header.style.cursor = "pointer"; // Explicitly show pointer
+    header.style.cursor = "pointer";
   } else {
     header.style.cursor = "default";
-    container.classList.add("pending-event"); // Optional style hooks
+    container.classList.add("pending-event");
   }
 
   container.appendChild(header);
@@ -253,209 +242,432 @@ function creaEvento(all, backupUltimoAllenamento, backupUltimaPartita) {
   return container;
 }
 
-function creaTabellaStatistiche(statsObj, titolo) {
-  const idTabella =
-    titolo === "Allenamenti"
-      ? "tabella-allenamenti"
-      : "tabella-partite";
+/* =========================================================
+   TABELLE STATISTICHE
+   ========================================================= */
+function creaTabellaStatistiche(statsObj, tipo) {
+  const isPartite = tipo === "partita";
+  const titolo = isPartite ? "Statistiche Partite" : "Statistiche Allenamenti";
+  const idTabella = isPartite ? "tabella-partite" : "tabella-allenamenti";
 
-  let ordinati = Object.entries(statsObj).map(([nome, dati]) => {
-    let mediaBase;
-    if (titolo === "Statistiche Partite") {
-      const conteggioMedia = dati._conteggioMedia || 0;
-      mediaBase = conteggioMedia > 0 ? dati.sommaVoti / conteggioMedia : 0;
-    } else {
-      mediaBase = dati.presenze > 0 ? dati.sommaVoti / dati.presenze : 0;
-    }
+  let righe = Object.entries(statsObj).map(([nome, r]) => ({
+    nome,
+    record: r,
+    media: mediaFinale(r, tipo),
+    mv3: mediaUltimi(r)
+  }));
 
-    // New: Calculate MV3 for EVERY table
-    let mv3 = "-";
-    if (dati.votiHistory && dati.votiHistory.length > 0) {
-      // Sort by timestamp descending (newest first)
-      const sortedVotes = [...dati.votiHistory].sort((a, b) => b.timestamp - a.timestamp);
-      const last3 = sortedVotes.slice(0, 3);
-      const sum3 = last3.reduce((acc, curr) => acc + curr.voto, 0);
-      mv3 = (sum3 / last3.length).toFixed(2);
-    }
-
-    let media;
-    if (titolo === "Statistiche Partite") {
-      media = mediaBase;
-    } else {
-      const penalita = (assenzeAllenamento[nome] || 0) * 0.1;
-      const mediaPenalizzata = mediaBase * (1 - penalita);
-      const bonus = dati.presenze * 0.05 * mediaBase;
-      media = mediaPenalizzata + bonus;
-    }
-
-    return { nome, ...dati, media, mv3 };
-  });
-
-  if (titolo === "Statistiche Partite") {
-    ordinati = ordinati.sort((a, b) => {
+  if (isPartite) {
+    righe.sort((a, b) => {
       if (a.nome === "Squadra") return 1;
       if (b.nome === "Squadra") return -1;
       return b.media - a.media;
     });
   } else {
-    ordinati = ordinati
+    righe = righe
       .filter((d) => d.nome !== "Squadra")
       .sort((a, b) => b.media - a.media);
   }
 
-  let html = `
-    <div class="statistiche-blocco" id="blocco-${idTabella}">
-      <div class="statistiche-header">
-        <h3>${titolo}</h3>
-        <button class="btn-copia-statistiche" data-blocco="blocco-${idTabella}" title="Copia come immagine">
-          <i class="fas fa-share-nodes"></i>
-        </button>
-      </div>
-      <table class="tabella-statistiche" id="${idTabella}">
-        <thead><tr><th>Giocatore</th><th>P</th><th>MV3</th><th>MV</th></tr></thead>
-        <tbody>`;
+  let html =
+    '<div class="statistiche-blocco" id="blocco-' +
+    idTabella +
+    '"><div class="statistiche-header"><h3>' +
+    titolo +
+    '</h3><button class="btn-copia-statistiche" data-blocco="blocco-' +
+    idTabella +
+    '" title="Condividi come immagine"><i class="fas fa-share-nodes"></i></button></div>' +
+    '<table class="tabella-statistiche" id="' +
+    idTabella +
+    '"><thead><tr><th>Giocatore</th><th>P</th><th>MV3</th><th>MV</th></tr></thead><tbody>';
 
-  ordinati.forEach((dati, i) => {
-    let classeMedia = "";
-    let mediaDisplay = "-";
-    let presenzeDisplay = dati.nome === "Squadra" ? "" : dati.presenze;
+  righe.forEach((d, i) => {
+    const mediaDisplay = d.media > 0 ? d.media.toFixed(2) : "-";
+    const mv3Display = isNaN(d.mv3) ? "-" : d.mv3.toFixed(2);
+    const presenzeDisplay = d.nome === "Squadra" ? "" : d.record.presenze;
+    const titoloPresenze =
+      d.nome === "Squadra"
+        ? ""
+        : ' title="' + d.record.presenze + " su " + d.record.disponibili + ' disponibili"';
 
-    if (dati.presenze > 0 && dati.media > 0) {
-      mediaDisplay = dati.media.toFixed(2);
-      if (dati.media < 6) classeMedia = "media-bassa";
-      else if (dati.media < 7) classeMedia = "media-media";
-      else if (dati.media < 8) classeMedia = "media-buona";
-      else classeMedia = "media-alta";
-    }
-
-    // New: MV3 Styling
-    let classeMedia3 = "";
-    const mv3Val = parseFloat(dati.mv3);
-    if (!isNaN(mv3Val)) {
-      if (mv3Val < 6) classeMedia3 = "media-bassa-soft";
-      else if (mv3Val < 7) classeMedia3 = "media-media-soft";
-      else if (mv3Val < 8) classeMedia3 = "media-buona-soft";
-      else classeMedia3 = "media-alta-soft";
-    }
-
-    html += `<tr class="${i % 2 === 0 ? "riga-pari" : "riga-dispari"}">
-            <td>${dati.nome}</td>
-            <td class="centrato">${presenzeDisplay}</td>
-            <td class="centrato ${classeMedia3}">${dati.mv3}</td>
-            <td class="centrato ${classeMedia}">${mediaDisplay}</td>
-          </tr>`;
+    html +=
+      '<tr class="' +
+      (i % 2 === 0 ? "riga-pari" : "riga-dispari") +
+      '"><td><button type="button" class="btn-dettaglio-giocatore" data-nome="' +
+      escapeHtml(d.nome) +
+      '">' +
+      escapeHtml(d.nome) +
+      '</button></td><td class="centrato"' +
+      titoloPresenze +
+      ">" +
+      presenzeDisplay +
+      '</td><td class="centrato ' +
+      classeMedia(d.mv3, true) +
+      '">' +
+      mv3Display +
+      '</td><td class="centrato ' +
+      classeMedia(d.media) +
+      '">' +
+      mediaDisplay +
+      "</td></tr>";
   });
 
-  html += `</tbody></table></div>`;
-  return html;
+  return html + "</tbody></table></div>";
 }
 
-function caricaDati() {
-  Promise.all([
-    firebaseDB.ref(`${ID_SQUADRA}/allenamenti`).once("value"),
-    firebaseDB.ref(`${ID_SQUADRA}/partite`).once("value"),
-  ]).then(([snapAll, snapPar]) => {
-    const allenamenti = snapAll.val();
-    const partite = snapPar.val();
+/* =========================================================
+   SCHEDA GIOCATORE (modale)
+   ========================================================= */
+function graficoAndamento(valori, colore) {
+  const punti = valori.filter((v) => !isNaN(v));
+  if (punti.length < 2) {
+    return '<p class="grafico-vuoto">Servono almeno 2 voti per il grafico</p>';
+  }
 
-    // Reset stats
-    inizializzaStats();
+  const W = 300;
+  const H = 90;
+  const P = 12;
+  const min = Math.min.apply(null, punti);
+  const max = Math.max.apply(null, punti);
+  const range = max - min || 1;
 
-    const arrayAllenamenti = allenamenti
-      ? Object.entries(allenamenti).map(([id, val]) => ({ id, ...val }))
-      : [];
+  const coord = punti.map((v, i) => {
+    const x = P + (i * (W - 2 * P)) / (punti.length - 1);
+    const y = H - P - ((v - min) / range) * (H - 2 * P);
+    return [Number(x.toFixed(1)), Number(y.toFixed(1))];
+  });
 
-    const arrayPartite = partite
-      ? Object.entries(partite).map(([id, val]) => ({
-        id,
-        tipo: "partita",
-        ...val,
-      }))
-      : [];
+  const linea = coord.map((c) => c[0] + "," + c[1]).join(" ");
+  const area = P + "," + (H - P) + " " + linea + " " + (W - P) + "," + (H - P);
+  const cerchi = coord
+    .map((c, i) => {
+      const ultimo = i === coord.length - 1;
+      return (
+        '<circle cx="' +
+        c[0] +
+        '" cy="' +
+        c[1] +
+        '" r="' +
+        (ultimo ? 4 : 2.5) +
+        '" fill="' +
+        colore +
+        '" ' +
+        (ultimo ? 'stroke="var(--sfondo-card)" stroke-width="2"' : "") +
+        " />"
+      );
+    })
+    .join("");
 
-    arrayAllenamenti.sort(
-      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-    );
-    arrayPartite.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return (
+    '<svg class="grafico-voti" viewBox="0 0 ' +
+    W +
+    " " +
+    H +
+    '" preserveAspectRatio="none" role="img" aria-label="Andamento degli ultimi ' +
+    punti.length +
+    ' voti">' +
+    '<polygon points="' +
+    area +
+    '" fill="' +
+    colore +
+    '" opacity="0.14" />' +
+    '<polyline points="' +
+    linea +
+    '" fill="none" stroke="' +
+    colore +
+    '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />' +
+    cerchi +
+    "</svg>" +
+    '<div class="grafico-scala"><span>min ' +
+    min.toFixed(2) +
+    "</span><span>max " +
+    max.toFixed(2) +
+    "</span></div>"
+  );
+}
 
-    // Clear Containers
-    const storicoContainer = document.getElementById("storicoContainer");
-    if (storicoContainer) {
-      storicoContainer.innerHTML = "<h3>Allenamenti</h3>";
+function bloccoScheda(titolo, r, tipo, colore) {
+  const media = mediaFinale(r, tipo);
+  const mv3 = mediaUltimi(r);
+  const base = mediaVoti(r);
+  const ultimi = r.storico
+    .filter((v) => !v.sv && !isNaN(v.voto))
+    .slice(-10)
+    .map((v) => v.voto);
 
-      arrayAllenamenti.forEach((all) => {
-        const evento = creaEvento(all, {}, {});
-        storicoContainer.appendChild(evento);
-      });
-
-      const partiteDiv = document.createElement("div");
-      const titoloPartite = document.createElement("h3");
-      titoloPartite.textContent = "Partite";
-      partiteDiv.appendChild(titoloPartite);
-      arrayPartite.forEach((par) => {
-        const evento = creaEvento(par, {}, {});
-        partiteDiv.appendChild(evento);
-      });
-      storicoContainer.appendChild(partiteDiv);
+  const tiles = [
+    { etichetta: "Presenze", valore: r.presenze + "/" + r.disponibili },
+    {
+      etichetta: "MV",
+      valore: media > 0 ? media.toFixed(2) : "-",
+      classe: classeMedia(media)
+    },
+    {
+      etichetta: "MV3",
+      valore: isNaN(mv3) ? "-" : mv3.toFixed(2),
+      classe: classeMedia(mv3, true)
     }
+  ];
 
-    document.getElementById("statisticheAllenamentiContainer").innerHTML =
-      creaTabellaStatistiche(statsAllenamento, "Statistiche Allenamenti");
-    document.getElementById("statistichePartiteContainer").innerHTML =
-      creaTabellaStatistiche(statsPartita, "Statistiche Partite");
-
-    // Re-attach screenshot listeners for new elements
-    document.querySelectorAll(".btn-copia-statistiche").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const targetId = btn.getAttribute("data-blocco");
-        const targetElement = document.getElementById(targetId);
-
-        if (targetElement) {
-          targetElement.classList.add("screenshot-mode");
-          // Use hex for dark background
-          html2canvas(targetElement, { backgroundColor: null }).then((canvas) => {
-            targetElement.classList.remove("screenshot-mode");
-            canvas.toBlob((blob) => {
-              condividiImmagine(blob, "statistiche.png");
-            });
-          });
-        }
-      });
+  if (tipo === "partita") {
+    tiles.push({ etichetta: "Minuti", valore: r.minuti });
+    tiles.push({ etichetta: "S.V.", valore: r.sv });
+  } else {
+    tiles.push({
+      etichetta: "Assenze",
+      valore: Math.max(0, r.disponibili - r.presenze)
     });
-  });
+    tiles.push({ etichetta: "Media voti", valore: base > 0 ? base.toFixed(2) : "-" });
+  }
+
+  const htmlTiles = tiles
+    .map(
+      (t) =>
+        '<div class="scheda-tile"><span class="scheda-tile-label">' +
+        t.etichetta +
+        '</span><span class="scheda-tile-valore ' +
+        (t.classe || "") +
+        '">' +
+        t.valore +
+        "</span></div>"
+    )
+    .join("");
+
+  const commenti = r.storico
+    .filter((v) => v.commento && v.commento.trim() !== "")
+    .slice(-4)
+    .reverse()
+    .map(
+      (v) =>
+        '<li><span class="scheda-commento-data">' +
+        formattaData(v.data) +
+        '</span><span class="scheda-commento-testo">' +
+        escapeHtml(v.commento) +
+        "</span></li>"
+    )
+    .join("");
+
+  return (
+    '<section class="scheda-sezione"><h4 style="color:' +
+    colore +
+    '">' +
+    titolo +
+    '</h4><div class="scheda-tiles">' +
+    htmlTiles +
+    "</div>" +
+    graficoAndamento(ultimi, colore) +
+    (commenti ? '<ul class="scheda-commenti">' + commenti + "</ul>" : "") +
+    "</section>"
+  );
 }
 
-// Initial Load
+function apriSchedaGiocatore(nome) {
+  const overlay = document.getElementById("modal-giocatore");
+  const titolo = document.getElementById("modal-nome");
+  const corpo = document.getElementById("modal-corpo");
+  if (!overlay || !corpo) return;
 
-// Wrapper for initialization
+  const rAll = stato.statsAllenamento[nome] || nuovoRecord();
+  const rPar = stato.statsPartita[nome] || nuovoRecord();
+
+  titolo.textContent = nome;
+  corpo.innerHTML =
+    nome === "Squadra"
+      ? bloccoScheda("Partite", rPar, "partita", "#3b82f6")
+      : bloccoScheda("Allenamenti", rAll, "allenamento", "#10b981") +
+        bloccoScheda("Partite", rPar, "partita", "#3b82f6");
+
+  overlay.classList.remove("hidden");
+  document.body.classList.add("modal-aperta");
+}
+
+function chiudiScheda() {
+  const overlay = document.getElementById("modal-giocatore");
+  if (!overlay || overlay.classList.contains("hidden")) return;
+  overlay.classList.add("hidden");
+  document.body.classList.remove("modal-aperta");
+}
+
+document.addEventListener("click", (e) => {
+  const btnGiocatore = e.target.closest(".btn-dettaglio-giocatore");
+  if (btnGiocatore) return apriSchedaGiocatore(btnGiocatore.dataset.nome);
+
+  if (e.target.closest(".modal-close")) return chiudiScheda();
+  if (e.target.classList.contains("modal-overlay")) return chiudiScheda();
+
+  const btnCopia = e.target.closest(".btn-copia-statistiche");
+  if (btnCopia) {
+    const target = document.getElementById(btnCopia.dataset.blocco);
+    if (target) catturaECondividi(target, btnCopia.dataset.blocco + ".png");
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") chiudiScheda();
+});
+
+/* =========================================================
+   CARICAMENTO E RENDER
+   ========================================================= */
+function caricaDati() {
+  return Promise.all([
+    window.firebaseDB.ref(ID_SQUADRA + "/allenamenti").once("value"),
+    window.firebaseDB.ref(ID_SQUADRA + "/partite").once("value")
+  ])
+    .then(([snapAll, snapPar]) => {
+      const allenamenti = snapAll.val() || {};
+      const partite = snapPar.val() || {};
+
+      const arrayAllenamenti = Object.entries(allenamenti).map(([id, val]) =>
+        Object.assign({ id, tipo: "allenamento" }, val)
+      );
+      const arrayPartite = Object.entries(partite).map(([id, val]) =>
+        Object.assign({ id, tipo: "partita" }, val)
+      );
+
+      // Il calcolo va fatto dal piu' vecchio al piu' recente: serve
+      // per le frecce di miglioramento e per l'MV3.
+      arrayAllenamenti.sort(confrontaCrescente);
+      arrayPartite.sort(confrontaCrescente);
+
+      const risultato = calcolaStatistiche(arrayAllenamenti, arrayPartite, rosa);
+      stato.statsAllenamento = risultato.statsAll;
+      stato.statsPartita = risultato.statsPar;
+
+      // La cronologia si mostra invece dal piu' recente
+      stato.allenamenti = arrayAllenamenti.slice().reverse();
+      stato.partite = arrayPartite.slice().reverse();
+
+      renderStorico();
+      renderStatistiche();
+    })
+    .catch((err) => {
+      console.error("Errore caricamento dati:", err);
+      mostraAvviso("Errore nel caricamento dei dati", "error");
+    });
+}
+
+function messaggioVuoto(testo) {
+  const p = document.createElement("p");
+  p.className = "lista-vuota";
+  p.textContent = testo;
+  return p;
+}
+
+function sezioneStorico(titolo, eventi, tipo, testoVuoto) {
+  const sezione = document.createElement("div");
+  const h3 = document.createElement("h3");
+  h3.textContent = titolo;
+  sezione.appendChild(h3);
+
+  if (eventi.length === 0) {
+    sezione.appendChild(messaggioVuoto(testoVuoto));
+  } else {
+    eventi.forEach((ev) => sezione.appendChild(creaEvento(ev, tipo)));
+  }
+  return sezione;
+}
+
+function renderStorico() {
+  const contenitore = document.getElementById("storicoContainer");
+  if (!contenitore) return;
+
+  contenitore.innerHTML = "";
+  contenitore.appendChild(
+    sezioneStorico(
+      "Allenamenti",
+      stato.allenamenti,
+      "allenamento",
+      "Nessun allenamento registrato"
+    )
+  );
+  contenitore.appendChild(
+    sezioneStorico("Partite", stato.partite, "partita", "Nessuna partita registrata")
+  );
+}
+
+function renderStatistiche() {
+  const divAll = document.getElementById("statisticheAllenamentiContainer");
+  const divPar = document.getElementById("statistichePartiteContainer");
+  if (divAll) divAll.innerHTML = creaTabellaStatistiche(stato.statsAllenamento, "allenamento");
+  if (divPar) divPar.innerHTML = creaTabellaStatistiche(stato.statsPartita, "partita");
+}
+
+/* =========================================================
+   SQUADRA NON CONSULTABILE
+   ---------------------------------------------------------
+   A decidere cosa e' consultabile e' il database: una squadra
+   alla radice si vede, una spostata sotto archivio/ no.
+   Senza questo controllo una squadra archiviata apparirebbe
+   semplicemente vuota, senza spiegare il perche'.
+   ========================================================= */
+function squadraSenzaDati() {
+  return (
+    rosa.length === 0 &&
+    stato.allenamenti.length === 0 &&
+    stato.partite.length === 0
+  );
+}
+
+function mostraAvvisoSquadra(titolo, testo) {
+  const banner = document.getElementById("avviso-squadra");
+  if (!banner) return;
+  banner.innerHTML =
+    "<strong>" + escapeHtml(titolo) + "</strong>" + escapeHtml(testo);
+  banner.classList.remove("hidden");
+}
+
+async function verificaSquadra() {
+  const banner = document.getElementById("avviso-squadra");
+  if (banner) banner.classList.add("hidden");
+
+  // Se c'e' anche un solo dato la squadra e' viva: nessuna verifica da fare
+  if (!squadraSenzaDati()) return;
+
+  let archiviata = false;
+  try {
+    const snap = await window.firebaseDB
+      .ref(RAMO_ARCHIVIO + "/" + ID_SQUADRA)
+      .once("value");
+    archiviata = snap.val() != null;
+  } catch (err) {
+    console.error("Verifica archivio non riuscita:", err);
+    return;
+  }
+
+  if (archiviata) {
+    mostraAvvisoSquadra(
+      SQUADRA.nome + " e' archiviata",
+      "I dati sono conservati sotto " + RAMO_ARCHIVIO + "/" + ID_SQUADRA +
+      " e non sono consultabili dal sito. Per rivederli va riportata fuori " +
+      "dall'archivio dalla pagina di gestione."
+    );
+  }
+}
+
+/* =========================================================
+   AVVIO
+   ========================================================= */
 async function avviaApp() {
   try {
-    console.log("Avvio app: caricamento giocatori...");
-    const giocatoriDB = await caricaGiocatori();
+    console.log('Avvio app squadra "' + SQUADRA.nome + '" (ramo: ' + ID_SQUADRA + ")");
+    await caricaGiocatori();
 
-    // Dispatch event for other modules (SPAs) to know players are ready
-    document.dispatchEvent(new Event("dati-pronti"));
+    // Segnala agli altri moduli che la rosa e' disponibile
+    segnalaDatiPronti();
 
-    console.log("Giocatori caricati. Avvio lettura dati...");
     await caricaDati();
-
-    // Skeleton: Remove loading class when ready
-    document.body.classList.remove("loading");
+    await verificaSquadra();
   } catch (err) {
     console.error("Errore avvio app:", err);
     mostraAvviso("Errore caricamento dati iniziali", "error");
-    // Even on error, remove skeleton to show alert/content
+  } finally {
     document.body.classList.remove("loading");
   }
 }
 
-// Initial Load
 avviaApp();
 
-// Listen for updates
 document.addEventListener("data-update", () => {
-  console.log("Refreshing data...");
-  caricaDati(); // Refresh stats/history (does not re-fetch players unless we want to?)
-  // Usually roster changes rarely. If we want auto-refresh relative to roster:
-  // avviaApp(); 
+  caricaDati();
 });

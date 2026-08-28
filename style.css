@@ -605,30 +605,9 @@ ul {
   text-align: center;
 }
 
-/* Colori delle medie */
-.media-bassa {
-  background-color: var(--media-bassa) !important;
-  /* rosso */
-  color: white;
-}
-
-.media-media {
-  background-color: var(--media-media) !important;
-  /* giallo */
-  color: white;
-}
-
-.media-buona {
-  background-color: var(--media-buona) !important;
-  /* verde */
-  color: white;
-}
-
-.media-alta {
-  background-color: var(--media-alta) !important;
-  /* verde scuro */
-  color: white;
-}
+/* I colori delle medie sono definiti piu' avanti, in un blocco unico:
+   cerca "COLORI DELLE MEDIE". Qui c'era una prima versione che veniva
+   comunque sovrascritta. */
 
 .mini-tabella {
   width: 100%;
@@ -1541,63 +1520,61 @@ input:checked+.pc-slider-switch:before {
 }
 
 
-/* Soft Classes for MV3 - Strict Override & Solid Background */
-/* We set background-color to the card background (solid) to hide zebra striping. */
-/* Then we use box-shadow inset to apply the semi-transparent tint on top. */
+/* =========================================================
+   COLORI DELLE MEDIE (colonne MV e MV3)
+   ---------------------------------------------------------
+   Tinta piena e opaca, non "box-shadow: inset" con colore
+   semitrasparente: html2canvas non disegna i box-shadow, quindi
+   nelle immagini condivise queste due colonne restavano grigie.
+   Le tinte gia' fuse sullo sfondo card sono in colors.css
+   (--media-*-piena), il risultato a schermo e' identico a prima.
+   L'opacita' piena serve anche a coprire la zebratura delle righe.
+   ========================================================= */
 td.media-bassa-soft,
 .media-bassa-soft {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-bassa-soft) !important;
+  background-color: var(--media-bassa-soft-piena) !important;
   color: white !important;
 }
 
 td.media-media-soft,
 .media-media-soft {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-media-soft) !important;
+  background-color: var(--media-media-soft-piena) !important;
   color: white !important;
 }
 
 td.media-buona-soft,
 .media-buona-soft {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-buona-soft) !important;
+  background-color: var(--media-buona-soft-piena) !important;
   color: white !important;
 }
 
 td.media-alta-soft,
 .media-alta-soft {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-alta-soft) !important;
+  background-color: var(--media-alta-soft-piena) !important;
   color: white !important;
 }
 
-/* FIX: Apply same box-shadow solid background logic to standard MV columns (media-*) to prevent zebra striping */
 td.media-bassa,
 .media-bassa {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-bassa) !important;
+  background-color: var(--media-bassa-piena) !important;
   color: white !important;
 }
 
 td.media-media,
 .media-media {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-media) !important;
+  background-color: var(--media-media-piena) !important;
   color: white !important;
 }
 
 td.media-buona,
 .media-buona {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-buona) !important;
+  background-color: var(--media-buona-piena) !important;
   color: white !important;
 }
 
 td.media-alta,
 .media-alta {
-  background-color: var(--sfondo-card) !important;
-  box-shadow: inset 0 0 0 9999px var(--media-alta) !important;
+  background-color: var(--media-alta-piena) !important;
   color: white !important;
 }
 
@@ -1651,4 +1628,351 @@ td.media-alta,
 
 .loading .page-container {
   display: none !important;
+}
+
+/* =========================================================
+   ROUTING / PAGINE
+   (prima erano in un <style> dentro index.html)
+   ========================================================= */
+.hidden {
+  display: none !important;
+}
+
+.page-container {
+  padding-bottom: 20px;
+}
+
+.lista-vuota {
+  text-align: center;
+  color: var(--testo-muted);
+  font-size: 0.9rem;
+  padding: 18px 10px;
+  margin: 0 0 16px 0;
+  border: 1px dashed var(--secondary);
+  border-radius: 10px;
+}
+
+/* =========================================================
+   CLASSI SOSTITUTIVE DEGLI STILI INLINE
+   ========================================================= */
+.pc-switch-box {
+  display: flex;
+  align-items: center;
+}
+
+.pc-toggle-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pc-toggle-label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--testo-muted);
+}
+
+.pc-valore-minuti {
+  color: var(--warning);
+  font-size: 1rem;
+}
+
+.evento-minuti {
+  color: var(--testo-muted);
+  font-size: 0.75rem;
+}
+
+/* =========================================================
+   NOME GIOCATORE CLICCABILE (apre la scheda)
+   ========================================================= */
+.btn-dettaglio-giocatore {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  /* Nessuna sottolineatura: il nome si presenta come testo normale.
+     La larghezza piena serve solo ad allargare l'area di tocco. */
+  width: 100%;
+  text-decoration: none;
+}
+
+/* Unico riscontro visivo: il nome si colora mentre lo si tocca */
+.btn-dettaglio-giocatore:active {
+  color: var(--primary);
+}
+
+/* =========================================================
+   SCHEDA GIOCATORE (modale)
+   ========================================================= */
+body.modal-aperta {
+  overflow: hidden;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0;
+}
+
+.modal-box {
+  background-color: var(--sfondo-card);
+  border: 1px solid var(--secondary);
+  border-radius: 18px 18px 0 0;
+  width: 100%;
+  max-width: 600px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: modal-su 0.22s ease-out;
+}
+
+@keyframes modal-su {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  background-color: var(--sfondo-card);
+  padding-top: 4px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  text-align: left;
+  font-size: 1.15rem;
+}
+
+.modal-close {
+  background: var(--secondary);
+  border: none;
+  color: var(--testo);
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.scheda-sezione {
+  margin-bottom: 22px;
+}
+
+.scheda-sezione h4 {
+  margin: 0 0 10px 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scheda-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.scheda-tile {
+  background-color: var(--sfondo);
+  border: 1px solid var(--secondary);
+  border-radius: 10px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scheda-tile-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--testo-muted);
+}
+
+.scheda-tile-valore {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 6px;
+  padding: 0 6px;
+}
+
+.grafico-voti {
+  width: 100%;
+  height: 90px;
+  display: block;
+  background-color: var(--sfondo);
+  border: 1px solid var(--secondary);
+  border-radius: 10px;
+}
+
+.grafico-scala {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--testo-muted);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico-vuoto {
+  font-size: 0.8rem;
+  color: var(--testo-muted);
+  text-align: center;
+  margin: 8px 0;
+}
+
+.scheda-commenti {
+  list-style: none;
+  margin: 12px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scheda-commenti li {
+  background-color: var(--sfondo);
+  border-left: 3px solid var(--secondary);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.scheda-commento-data {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--testo-muted);
+  margin-bottom: 2px;
+}
+
+.scheda-commento-testo {
+  color: var(--testo);
+}
+
+
+/* =========================================================
+   SCHEDA GIOCATORE SOPRA LA NAVBAR
+   ---------------------------------------------------------
+   .bottom-nav ha z-index 1000 e nell'HTML viene dopo la modale:
+   a parita' di z-index vinceva lei e copriva il fondo della scheda.
+   ========================================================= */
+.modal-overlay {
+  z-index: 1200;
+}
+
+/* =========================================================
+   STATO DI ATTESA: nessuna data selezionata
+   ---------------------------------------------------------
+   La classe .attesa-data viene messa sul contenitore di pagina
+   da partita_spa.js e allenamenti_spa.js.
+   ========================================================= */
+.stato-attesa {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 24px 10px;
+  padding: 22px 16px;
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: 12px;
+  color: var(--testo-muted);
+  font-size: 0.9rem;
+}
+
+.stato-attesa i {
+  color: var(--warning);
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.attesa-data .stato-attesa {
+  display: flex;
+}
+
+/* Tutto cio' che dipende dalla data resta nascosto finche' non c'e' */
+.attesa-data #campo,
+.attesa-data #panchina-title,
+.attesa-data #div-panchina,
+.attesa-data #votiContainer,
+.attesa-data .statistiche-container,
+.attesa-data #lista-giocatori,
+.attesa-data .floating-pill-btn {
+  display: none !important;
+}
+
+/* Il campo data si segnala da solo, senza urlare */
+.attesa-data input[type="date"] {
+  border-color: var(--warning);
+  animation: attesa-data-pulsa 2.6s ease-in-out infinite;
+}
+
+@keyframes attesa-data-pulsa {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attesa-data input[type="date"] {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  }
+}
+
+
+/* =========================================================
+   AVVISO SQUADRA NON CONSULTABILE
+   ---------------------------------------------------------
+   Compare solo quando la squadra richiesta e' finita in
+   archivio o non esiste: senza questo l'app sembrerebbe
+   semplicemente vuota, senza spiegare perche'.
+   ========================================================= */
+.avviso-squadra {
+  margin: 0 10px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--warning);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background-color: rgba(245, 158, 11, 0.08);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--testo);
+}
+
+.avviso-squadra strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--warning);
 }

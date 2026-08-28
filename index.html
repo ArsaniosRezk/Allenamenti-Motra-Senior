@@ -3,23 +3,37 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Gestione allenamenti, formazioni e pagelle della squadra." />
+  <meta name="theme-color" content="#1f2937" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <title>Statistiche</title>
-  <link rel="icon" type="image/x-icon" href="immagini/favicon.svg">
-  <link rel="manifest" href="manifest.json">
+
+  <link rel="icon" type="image/svg+xml" href="immagini/favicon.svg" />
+  <link rel="apple-touch-icon" href="immagini/favicon.svg" />
+  <link rel="manifest" href="manifest-sant-antonio.json" />
+
+  <link rel="preconnect" href="https://www.gstatic.com" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="colors.css" />
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 
 <body class="loading">
-  <!-- Intestazione Comune -->
+  <!-- Intestazione comune -->
   <div id="intestazione">
     <h2 id="titolo-pagina">STATISTICHE</h2>
   </div>
 
-  <!-- Skeleton Loading (Visible only when body has .loading) -->
+  <!-- Mostrato solo se la squadra richiesta e' archiviata o inesistente -->
+  <div id="avviso-squadra" class="avviso-squadra hidden"></div>
+
+  <!-- Skeleton di caricamento (visibile solo con body.loading) -->
   <div id="skeleton-container">
     <div class="skeleton skeleton-text title"></div>
     <div class="skeleton skeleton-card"></div>
@@ -27,20 +41,18 @@
     <div class="skeleton skeleton-card"></div>
   </div>
 
-  <!-- Pagine SPA -->
-
-  <!-- Pagina 1: Statistiche (Default) -->
+  <!-- ============ Pagina 1: Statistiche ============ -->
   <div id="page-stats" class="page-container">
     <div id="statisticheAllenamentiContainer"></div>
     <div id="statistichePartiteContainer"></div>
   </div>
 
-  <!-- Pagina 2: Storico -->
+  <!-- ============ Pagina 2: Cronologia ============ -->
   <div id="page-storico" class="page-container hidden">
     <div id="storicoContainer"></div>
   </div>
 
-  <!-- Pagina 3: Partita -->
+  <!-- ============ Pagina 3: Partita ============ -->
   <div id="page-partita" class="page-container hidden">
     <div class="flex-control-row">
       <label for="dataPartita">Data</label>
@@ -55,14 +67,14 @@
       </select>
     </div>
 
-    <div id="campo">
-      <!-- Buttons injected here are persistent or can be re-rendered. 
-           Since renderCampo clears HTML, we should likely move these OUTSIDE if we want them persistent 
-           OR re-inject them in JS.
-           Wait, `renderCampo()` in `partita_spa.js` likely clears innerHTML of #campo.
-           If so, putting them here in HTML is useless as they will be wiped on load.
-           Checking `partita_spa.js`. -->
+    <!-- Mostrato al posto del campo finche' non viene scelta una data -->
+    <div class="stato-attesa">
+      <i class="fas fa-calendar-day"></i>
+      <span>Scegli una data per iniziare</span>
     </div>
+
+    <!-- Campo e bottoni di azione vengono generati da partita_spa.js -->
+    <div id="campo"></div>
 
     <h3 id="panchina-title">Panchina</h3>
     <div id="div-panchina">
@@ -82,21 +94,24 @@
       </div>
     </div>
 
-    <!-- Removed .btn-salva-container -->
-
     <div id="votiContainer"></div>
 
-    <!-- Floating Pill Button (Always Fixed) -->
-    <button id="salvaPagella" class="floating-pill-btn">
+    <button type="button" id="salvaPagella" class="floating-pill-btn">
       <i class="fas fa-save"></i> <span id="salvaPagellaText">Salva Formazione</span>
     </button>
   </div>
 
-  <!-- Pagina 4: Allenamento -->
+  <!-- ============ Pagina 4: Allenamento ============ -->
   <div id="page-allenamento" class="page-container hidden">
     <div class="flex-control-row">
       <label for="dataAllenamento">Data</label>
       <input type="date" id="dataAllenamento" name="dataAllenamento" required />
+    </div>
+
+    <!-- Mostrato al posto della lista finche' non viene scelta una data -->
+    <div class="stato-attesa">
+      <i class="fas fa-calendar-day"></i>
+      <span>Scegli una data per iniziare</span>
     </div>
 
     <form id="allenamentoForm">
@@ -108,44 +123,50 @@
     </form>
   </div>
 
-  <!-- Bottom Navbar -->
+  <!-- ============ Scheda giocatore ============ -->
+  <div id="modal-giocatore" class="modal-overlay hidden" role="dialog" aria-modal="true"
+    aria-labelledby="modal-nome">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-nome"></h3>
+        <button type="button" class="modal-close" aria-label="Chiudi">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div id="modal-corpo"></div>
+    </div>
+  </div>
+
+  <!-- ============ Navbar ============ -->
   <nav class="bottom-nav">
-    <a href="#" class="nav-item active" data-target="page-stats" data-title="STATISTICHE">
+    <a href="#stats" class="nav-item active" data-rotta="stats">
       <i class="fas fa-chart-line"></i>
       <span>Stats</span>
     </a>
-    <a href="#" class="nav-item" data-target="page-storico" data-title="CRONOLOGIA">
+    <a href="#cronologia" class="nav-item" data-rotta="cronologia">
       <i class="fas fa-history"></i>
       <span>Cronologia</span>
     </a>
-    <a href="#" class="nav-item" data-target="page-partita" data-title="PARTITA">
+    <a href="#partita" class="nav-item" data-rotta="partita">
       <i class="fas fa-futbol"></i>
       <span>Partita</span>
     </a>
-    <a href="#" class="nav-item" data-target="page-allenamento" data-title="ALLENAMENTO">
+    <a href="#allenamento" class="nav-item" data-rotta="allenamento">
       <i class="fas fa-running"></i>
       <span>Allen</span>
     </a>
   </nav>
 
-  <div id="avviso" style="display:none;"></div>
+  <div id="avviso" style="display:none;" role="status" aria-live="polite"></div>
 
-  <style>
-    .hidden {
-      display: none !important;
-    }
-
-    .page-container {
-      padding-bottom: 20px;
-    }
-  </style>
-
-  <!-- Firebase compat -->
+  <!-- Firebase (SDK compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
+    // Un solo progetto Firebase per tutte le squadre: cambia solo il ramo
+    // di primo livello, definito in utils.js (ID_SQUADRA).
     const firebaseConfig = {
       apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
       authDomain: "allenamenti-motra-senior.firebaseapp.com",
@@ -159,40 +180,13 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    window.firebaseDB = db;
+    window.firebaseDB = firebase.database();
   </script>
 
-  <!-- Main Logic -->
-  <!-- Note: type="module" allows us to import our existing modules. 
-         We might need to refactor them slightly to not conflict or run immediately if they assume specific pages.
-    -->
+  <!-- Logica applicativa (il routing e' in router.js, importato da index.js) -->
   <script type="module" src="index.js"></script>
   <script type="module" src="partita_spa.js"></script>
   <script type="module" src="allenamenti_spa.js"></script>
-
-  <script>
-    // Simple Router Logic directly here or imported
-    document.querySelectorAll('.nav-item').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        // Remove active class
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        // Add active class
-        link.classList.add('active');
-
-        // Hide all pages
-        document.querySelectorAll('.page-container').forEach(p => p.classList.add('hidden'));
-
-        // Show target page
-        const targetId = link.getAttribute('data-target');
-        document.getElementById(targetId).classList.remove('hidden');
-
-        // Update Title
-        document.getElementById('titolo-pagina').textContent = link.getAttribute('data-title');
-      });
-    });
-  </script>
 </body>
 
 </html>

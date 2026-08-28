@@ -66,6 +66,23 @@
     --media-buona-soft: #10b98159;
     --media-alta-soft: #05966980;
 
+    /* Ratings / Voti - TINTE PIENE
+       Sono le stesse tinte qui sopra, gia' fuse su --sfondo-card e quindi
+       senza trasparenza. Servono per le celle delle tabelle: prima il
+       colore veniva steso con "box-shadow: inset", che html2canvas non
+       sa disegnare, e nelle immagini condivise le colonne MV3 e MV
+       risultavano tutte grigie.
+       Se cambi --sfondo-card o le tinte qui sopra, questi vanno rifatti. */
+    --media-bassa-piena: #ac3b45;
+    --media-media-piena: #b57b19;
+    --media-buona-piena: #148e6c;
+    --media-alta-piena: #059669;
+
+    --media-bassa-soft-piena: #653240;
+    --media-media-soft-piena: #69522a;
+    --media-buona-soft-piena: #195b53;
+    --media-alta-soft-piena: #116052;
+
     /* Toggles (Switch) */
     --toggle-negativo: var(--error);
     --toggle-neutro: var(--testo-muted);

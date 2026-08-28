@@ -1,7 +1,7 @@
 {
-    "id": "/",
-    "name": "Motra",
-    "short_name": "Motra",
+    "id": "/?team=sant-antonio",
+    "name": "Motra Sant'Antonio",
+    "short_name": "Sant'Antonio",
     "description": "Allenamenti, formazioni e pagelle della squadra.",
     "lang": "it",
     "start_url": "./index.html#stats",
