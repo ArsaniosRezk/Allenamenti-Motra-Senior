@@ -30,21 +30,36 @@ const SHELL = [
     "./manifest-santa-maria.json"
 ];
 
+/* Va nella cache dei STATICI, non in quella della shell: il fetch handler
+   smista le immagini per estensione e le cerca solo li'. Metterla nella
+   shell equivarrebbe a non precaricarla affatto. */
+const STATICI = ["./immagini/favicon.svg"];
+
 // Host esterni di cui vale la pena tenere una copia locale
 const CDN_CONSENTITI = ["cdnjs.cloudflare.com", "www.gstatic.com"];
 
-self.addEventListener("install", (event) => {
-    self.skipWaiting();
-    event.waitUntil(
-        caches.open(CACHE_SHELL).then((cache) =>
-            // addAll fallisce in blocco se un solo file non risponde:
-            // meglio procedere uno per uno.
-            Promise.all(
-                SHELL.map((url) =>
-                    cache.add(url).catch((err) => console.warn("[SW] salto", url, err))
-                )
+// addAll fallisce in blocco se un solo file non risponde: meglio uno per uno
+function precarica(nomeCache, urls) {
+    return caches.open(nomeCache).then((cache) =>
+        Promise.all(
+            urls.map((url) =>
+                cache.add(url).catch((err) => console.warn("[SW] salto", url, err))
             )
         )
+    );
+}
+
+/* Niente skipWaiting: il nuovo worker resta in attesa finche' la pagina
+   non viene ricaricata. E' quello che index.js promette all'utente con
+   "Aggiornamento disponibile: ricarica la pagina" - attivandolo subito
+   la pagina finiva controllata dal worker nuovo mentre eseguiva ancora
+   il JavaScript vecchio. */
+self.addEventListener("install", (event) => {
+    event.waitUntil(
+        Promise.all([
+            precarica(CACHE_SHELL, SHELL),
+            precarica(CACHE_STATICI, STATICI)
+        ])
     );
 });
 

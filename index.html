@@ -5,7 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Gestione allenamenti, formazioni e pagelle della squadra." />
-  <meta name="theme-color" content="#1e3a8a" />
+  <!-- Valori neutri: applicaIdentitaSquadra() in utils.js li sostituisce
+       con quelli della squadra risolta. Cablare qui una squadra faceva
+       scaricare al sito dell'altra il manifest sbagliato prima che i
+       moduli venissero eseguiti. -->
+  <meta name="theme-color" content="#1f2937" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -14,7 +18,7 @@
 
   <link rel="icon" type="image/svg+xml" href="immagini/favicon.svg" />
   <link rel="apple-touch-icon" href="immagini/favicon.svg" />
-  <link rel="manifest" href="manifest-santa-maria.json" />
+  <link rel="manifest" href="manifest.json" />
 
   <link rel="preconnect" href="https://www.gstatic.com" />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
@@ -30,7 +34,7 @@
     <h2 id="titolo-pagina">STATISTICHE</h2>
   </div>
 
-  <!-- Mostrato solo se la squadra richiesta e' archiviata o inesistente -->
+  <!-- Mostrato se la squadra richiesta e' archiviata, vuota o inesistente -->
   <div id="avviso-squadra" class="avviso-squadra hidden"></div>
 
   <!-- Skeleton di caricamento (visibile solo con body.loading) -->
@@ -61,10 +65,9 @@
 
     <div class="flex-control-row">
       <label for="moduloFormazione">Modulo</label>
-      <select id="moduloFormazione">
-        <option value="3-2-1">3-2-1</option>
-        <option value="2-3-1">2-3-1</option>
-      </select>
+      <!-- Le opzioni le genera partita_spa.js dalla mappa `moduli`:
+           una lista sola, non due da tenere allineate. -->
+      <select id="moduloFormazione"></select>
     </div>
 
     <!-- Mostrato al posto del campo finche' non viene scelta una data -->

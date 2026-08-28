@@ -1,0 +1,12 @@
+{
+  "name": "squadre-motra",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App allenamenti, formazioni e pagelle. Sito statico, nessun passaggio di build.",
+  "//": "type: module serve a Node per leggere statistiche.js come modulo ES. Senza, verifica-parametri.mjs gira solo su Node >= 22.7. Nessuna dipendenza: Netlify non ha niente da installare e non c'e' nessun build da eseguire.",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "verifica": "node verifica-parametri.mjs"
+  }
+}

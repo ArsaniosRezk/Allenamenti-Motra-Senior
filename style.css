@@ -63,8 +63,6 @@ body {
 
 
 /* Card Styling */
-.card,
-.giocatore-box,
 .statistiche-blocco {
   background-color: var(--sfondo-card);
   border-radius: 10px;
@@ -182,35 +180,9 @@ textarea:-ms-input-placeholder {
   flex-direction: column;
 }
 
-.giocatore-box {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 5px;
-  background-color: var(--secondary);
-}
-
 /* Riga con nome + select */
-.giocatore-riga {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 /* Nome giocatore/squadra */
-.giocatore-nome {
-  flex: 1;
-  font-weight: bold;
-}
-
 /* Container dei toggle */
-.bonus-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 /* TOGGLE BONUS o MALUS */
 .toggle-3 {
   width: 70px;
@@ -554,10 +526,6 @@ ul {
   padding-left: 0;
 }
 
-.evento-riga {
-  list-style-position: inside;
-}
-
 .freccia {
   font-family: monospace;
   font-weight: bold;
@@ -571,17 +539,6 @@ ul {
   color: rgb(246, 79, 79);
 }
 
-.btn-elimina {
-  margin-top: 10px;
-  background-color: var(--btn-elimina-bg, #ffe5e5);
-  border: 1px solid var(--btn-elimina-border, #ff9999);
-  border-radius: 6px;
-  padding: 6px 12px;
-  color: var(--btn-elimina-text, #a30000);
-  font-size: 14px;
-  cursor: pointer;
-}
-
 .tabella-statistiche {
   width: 100%;
   border-collapse: collapse;
@@ -591,14 +548,6 @@ ul {
 .tabella-statistiche td {
   padding: 8px;
   border: 1px solid #ddd;
-}
-
-.riga-pari {
-  background-color: #f9f9f9;
-}
-
-.riga-dispari {
-  background-color: #ffffff;
 }
 
 .centrato {
@@ -644,57 +593,8 @@ ul {
   /* es: #ffffff */
 }
 
-.bottoni-wrapper {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.btn-copia,
-.btn-elimina {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.screenshot-mode .bottoni-wrapper {
-  display: none !important;
-}
-
 .screenshot-mode .btn-copia-statistiche {
   display: none !important;
-}
-
-.screenshot-mode .riga-azioni {
-  display: none !important;
-}
-
-.btn-elimina i,
-.btn-copia i,
-.btn-modifica i {
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: var(--testo);
-}
-
-.azioni-wrapper {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.azioni-wrapper button {
-  background-color: transparent;
-  border: none;
-  padding: 0.8rem;
-  border-radius: 5px;
-  margin: 0;
-}
-
-.azioni-wrapper i {
-  font-size: 1em;
-  color: var(--testo);
 }
 
 .statistiche-header {
@@ -720,10 +620,6 @@ ul {
 }
 
 /* panchina  */
-
-#div-data-partita {
-  text-align: center;
-}
 
 #campo {
   display: flex;
@@ -840,19 +736,12 @@ ul {
 }
 
 /* Slider Styling */
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
 .input-voto-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
-  background: var(--secondary);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 5px;
   outline: none;
   border: none;
@@ -881,14 +770,6 @@ ul {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
-.voto-value {
-  font-weight: bold;
-  font-family: monospace;
-  min-width: 40px;
-  text-align: right;
-  color: var(--primary);
-}
-
 /* Updated Table Styling */
 .tabella-statistiche th {
   padding: 8px !important;
@@ -896,125 +777,6 @@ ul {
 
 h2,
 h3 {
-  text-align: center;
-}
-
-/* Unified Player Card Styling */
-.pc-card {
-  background-color: var(--secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 10px 12px;
-  /* Compact padding */
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.pc-card.disabled {
-  opacity: 0.6;
-}
-
-.pc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 8px;
-  margin-bottom: 4px;
-}
-
-.pc-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--testo);
-}
-
-.pc-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: var(--testo-muted);
-}
-
-.pc-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.pc-vote-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pc-vote-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.pc-vote-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--testo-muted);
-}
-
-.pc-vote-value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--primary);
-  font-family: monospace;
-}
-
-.pc-slider-wrapper {
-  width: 100%;
-  padding: 0 4px;
-}
-
-.pc-extras-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.pc-footer {
-  margin-top: 4px;
-}
-
-.pc-comment-input {
-  width: 100%;
-  background-color: rgba(0, 0, 0, 0.2);
-  border: 1px solid transparent;
-  padding: 10px;
-  border-radius: 8px;
-  color: var(--testo);
-  font-size: 0.9rem;
-  transition: all 0.2s;
-}
-
-.pc-comment-input:focus {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-color: var(--primary);
-  outline: none;
-}
-
-/* Toggle overrides for card context */
-.pc-card .toggle-3 {
-  transform: scale(0.9);
-}
-
-#panchina-title {
-  margin-bottom: 4px;
-  margin-top: 16px;
   text-align: center;
 }
 
@@ -1029,46 +791,7 @@ h3 {
 
 }
 
-.input-minuti {
-  text-align: center;
-}
-
-.input-minuti::-webkit-input-placeholder {
-  color: var(--placeholder);
-  opacity: 1;
-  text-align: center;
-  font-size: 0.8rem;
-}
-
-.input-minuti::-moz-placeholder {
-  color: var(--placeholder);
-  opacity: 1;
-  text-align: center;
-  font-size: 0.8rem;
-}
-
-.input-minuti:-ms-input-placeholder {
-  color: var(--placeholder);
-  opacity: 1;
-  text-align: center;
-  font-size: 0.8rem;
-}
-
-.input-minuti::-ms-input-placeholder {
-  color: var(--placeholder);
-  opacity: 1;
-  text-align: center;
-  font-size: 0.8rem;
-}
-
 /* STATISTICHE FORMAZIONE */
-
-.statistiche-container {
-  margin: 0 auto;
-  /* max-width: 300px; */
-  margin-top: 12px;
-  margin-bottom: 5px;
-}
 
 .statistiche-tabella {
   width: 100%;
@@ -1190,7 +913,25 @@ h3 {
   margin-bottom: 10px;
 }
 
-/* Unified Player Card Styling - Compact & Modern */
+/* =========================================================
+   SCHEDA GIOCATORE (pagelle partita e allenamento)
+   ---------------------------------------------------------
+   Blocco unico. Prima ne esistevano due, quasi identici ma con
+   valori diversi: vinceva sempre il secondo e modificare il primo
+   non produceva alcun effetto.
+   ========================================================= */
+.pc-extras-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pc-footer {
+  margin-top: 4px;
+}
+
 .pc-card {
   background-color: var(--secondary);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1251,6 +992,7 @@ h3 {
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--testo-muted);
 }
 
@@ -1269,13 +1011,6 @@ h3 {
 }
 
 /* Slider Voto (Primary) */
-.input-voto-slider {
-  height: 6px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  /* Add colored track via JS in future if needed, for now standard */
-}
-
 /* Slider Minuti (Secondary Distinct Color) */
 .input-minuti-slider {
   -webkit-appearance: none;

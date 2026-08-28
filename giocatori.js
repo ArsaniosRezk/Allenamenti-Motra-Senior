@@ -16,7 +16,6 @@ export async function caricaGiocatori() {
         .map((n) => n.trim());
       lista.sort((a, b) => a.localeCompare(b, "it"));
       giocatori.push(...lista);
-      console.log("Rosa caricata:", giocatori.length, "giocatori");
     } else {
       console.warn(`Nessun giocatore trovato in ${ID_SQUADRA}/rosa. Lista vuota.`);
     }

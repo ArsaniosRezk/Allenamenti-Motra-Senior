@@ -22,7 +22,8 @@ import {
   mediaFinale,
   mediaUltimi,
   mediaVoti,
-  classeMedia
+  classeMedia,
+  VOTI_MV3
 } from "./statistiche.js";
 
 applicaIdentitaSquadra();
@@ -46,7 +47,7 @@ if ("serviceWorker" in navigator) {
           });
         });
       })
-      .catch((err) => console.log("Service Worker fallito:", err));
+      .catch((err) => console.warn("Service Worker fallito:", err));
   });
 }
 
@@ -91,7 +92,7 @@ function creaEvento(ev, tipo) {
     '</div><div class="evento-info"><span class="evento-tipo">' +
     tipoCapitalizzato +
     '</span><span class="evento-data">' +
-    dataVisibile +
+    escapeHtml(dataVisibile) +
     "</span></div>";
 
   const haVoti = ev.giocatori && Object.keys(ev.giocatori).length > 0;
@@ -279,12 +280,21 @@ function creaTabellaStatistiche(statsObj, tipo) {
     '" title="Condividi come immagine"><i class="fas fa-share-nodes"></i></button></div>' +
     '<table class="tabella-statistiche" id="' +
     idTabella +
-    '"><thead><tr><th>Giocatore</th><th>P</th><th>MV3</th><th>MV</th></tr></thead><tbody>';
+    '"><thead><tr><th>Giocatore</th><th>P</th><th>MV' +
+    VOTI_MV3 +
+    "</th><th>MV</th></tr></thead><tbody>";
 
   righe.forEach((d, i) => {
     const mediaDisplay = d.media > 0 ? d.media.toFixed(2) : "-";
     const mv3Display = isNaN(d.mv3) ? "-" : d.mv3.toFixed(2);
     const presenzeDisplay = d.nome === "Squadra" ? "" : d.record.presenze;
+
+    // Chi non e' piu' in rosa resta in tabella con i suoi voti, ma va
+    // riconoscibile: stesso asterisco usato nella cronologia.
+    const fuoriRosa = d.nome !== "Squadra" && rosa.indexOf(d.nome) === -1;
+    const etichetta = escapeHtml(d.nome) + (fuoriRosa ? " *" : "");
+    const titoloNome = fuoriRosa ? ' title="Non fa parte della rosa attuale"' : "";
+
     const titoloPresenze =
       d.nome === "Squadra"
         ? ""
@@ -295,8 +305,10 @@ function creaTabellaStatistiche(statsObj, tipo) {
       (i % 2 === 0 ? "riga-pari" : "riga-dispari") +
       '"><td><button type="button" class="btn-dettaglio-giocatore" data-nome="' +
       escapeHtml(d.nome) +
-      '">' +
-      escapeHtml(d.nome) +
+      '"' +
+      titoloNome +
+      ">" +
+      etichetta +
       '</button></td><td class="centrato"' +
       titoloPresenze +
       ">" +
@@ -440,7 +452,7 @@ function bloccoScheda(titolo, r, tipo, colore) {
     .map(
       (v) =>
         '<li><span class="scheda-commento-data">' +
-        formattaData(v.data) +
+        escapeHtml(formattaData(v.data)) +
         '</span><span class="scheda-commento-testo">' +
         escapeHtml(v.commento) +
         "</span></li>"
@@ -625,42 +637,84 @@ async function verificaSquadra() {
   if (!squadraSenzaDati()) return;
 
   let archiviata = false;
+  let esiste = false;
   try {
-    const snap = await window.firebaseDB
-      .ref(RAMO_ARCHIVIO + "/" + ID_SQUADRA)
-      .once("value");
-    archiviata = snap.val() != null;
+    const [snapArchivio, snapRamo] = await Promise.all([
+      window.firebaseDB.ref(RAMO_ARCHIVIO + "/" + ID_SQUADRA).once("value"),
+      window.firebaseDB.ref(ID_SQUADRA).once("value")
+    ]);
+    archiviata = snapArchivio.val() != null;
+    esiste = snapRamo.val() != null;
   } catch (err) {
-    console.error("Verifica archivio non riuscita:", err);
+    console.error("Verifica squadra non riuscita:", err);
     return;
   }
 
   if (archiviata) {
-    mostraAvvisoSquadra(
+    return mostraAvvisoSquadra(
       SQUADRA.nome + " e' archiviata",
       "I dati sono conservati sotto " + RAMO_ARCHIVIO + "/" + ID_SQUADRA +
       " e non sono consultabili dal sito. Per rivederli va riportata fuori " +
       "dall'archivio dalla pagina di gestione."
     );
   }
+
+  // Squadra viva ma ancora senza nulla dentro: e' il caso normale subito
+  // dopo la creazione, non un errore.
+  if (esiste) {
+    return mostraAvvisoSquadra(
+      SQUADRA.nome + " non ha ancora dati",
+      "La squadra esiste ma la rosa e' vuota e non ci sono allenamenti ne' " +
+      "partite. Aggiungi i giocatori dalla pagina di gestione."
+    );
+  }
+
+  // Nessun ramo con questo id: quasi sempre un ?team= sbagliato o un
+  // dominio non ancora mappato in SQUADRA_PER_HOST.
+  mostraAvvisoSquadra(
+    "Nessuna squadra \"" + ID_SQUADRA + "\"",
+    "Sul database non esiste un ramo con questo id. Controlla l'indirizzo " +
+    "(?team=<id>) oppure creala dalla pagina di gestione."
+  );
 }
 
 /* =========================================================
    AVVIO
    ========================================================= */
+/* Senza rete le letture di Firebase non si risolvono ne' falliscono:
+   restano appese. Senza questo limite il finally non partiva mai e
+   l'app mostrava lo scheletro di caricamento all'infinito. */
+const TIMEOUT_AVVIO = 12000;
+
+function conTimeout(promessa, ms) {
+  return Promise.race([
+    promessa,
+    new Promise((_, rifiuta) =>
+      setTimeout(() => rifiuta(new Error("timeout")), ms)
+    )
+  ]);
+}
+
 async function avviaApp() {
   try {
-    console.log('Avvio app squadra "' + SQUADRA.nome + '" (ramo: ' + ID_SQUADRA + ")");
-    await caricaGiocatori();
+    await conTimeout(caricaGiocatori(), TIMEOUT_AVVIO);
 
     // Segnala agli altri moduli che la rosa e' disponibile
     segnalaDatiPronti();
 
-    await caricaDati();
-    await verificaSquadra();
+    await conTimeout(caricaDati(), TIMEOUT_AVVIO);
+    await conTimeout(verificaSquadra(), TIMEOUT_AVVIO);
   } catch (err) {
     console.error("Errore avvio app:", err);
-    mostraAvviso("Errore caricamento dati iniziali", "error");
+    // Gli altri moduli aspettano il segnale: senza, Partita e Allenamento
+    // resterebbero inerti anche potendo almeno disegnare l'interfaccia.
+    segnalaDatiPronti();
+    mostraAvviso(
+      err && err.message === "timeout"
+        ? "Nessuna connessione: dati non disponibili"
+        : "Errore caricamento dati iniziali",
+      "error"
+    );
   } finally {
     document.body.classList.remove("loading");
   }

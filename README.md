@@ -28,7 +28,7 @@ con doppio clic (`file://`), il browser li blocca.
 
 ```bash
 cd "Allenamenti-Motra-Senior"
-npx serve .
+npm start          # equivale a: npx serve .
 ```
 
 Poi apri l'indirizzo che compare, di solito `http://localhost:3000`.
@@ -70,6 +70,7 @@ python -m http.server 3000
 | `manifest-<squadra>.json` | Manifest PWA, uno per squadra |
 | `netlify.toml` | Configurazione di pubblicazione, uguale per tutti i siti |
 | `verifica-parametri.mjs` | Strumento per regolare i parametri di calcolo |
+| `package.json` | Nessuna dipendenza: serve solo a dichiarare i moduli ES a Node |
 | `gestione-squadre.html` | Pagina di servizio, **esclusa dal repository** |
 
 Le quattro sezioni dell'app sono tutte già nel DOM e `router.js` mostra
@@ -192,6 +193,10 @@ Il tasso di presenza parte **dal primo allenamento in cui il giocatore
 compare**, così chi si aggrega a stagione iniziata non eredita assenze che
 non gli competono.
 
+Da quel momento in poi però contano **tutti** gli allenamenti, anche per
+chi non è più in rosa: altrimenti risulterebbe presente al 100% e la sua
+MV non verrebbe mai corretta, scavalcando in classifica chi c'è ancora.
+
 ### Partita
 
 ```
@@ -238,7 +243,7 @@ più il rendimento.
 ### Come si verificano
 
 ```bash
-node verifica-parametri.mjs
+npm run verifica                      # oppure: node verifica-parametri.mjs
 node verifica-parametri.mjs 7.5 25    # media voti 7.5, stagione di 25 allenamenti
 ```
 
@@ -255,6 +260,8 @@ Presenze    Tasso         MV   Fascia colore
   16/20     80%         6.58   media
   12/20     60%         6.16   media
   8/20      40%         5.74   bassa
+  4/20      20%         5.32   bassa
+  0/20      0%             -   nessuna
 
 PESO DI UNA SINGOLA SEDUTA
   venire o non venire sposta la MV di 0.105 punti (1.5% del voto)
@@ -272,9 +279,11 @@ qualunque formula basata su percentuali, ed è anche corretto.
 | Valore | Dove | Significato |
 |---|---|---|
 | `0.05` | `allenamenti_spa.js` | passo dei bonus Atletica/Partitella (5%) |
+| `VOTO_DEFAULT` | `partita_spa.js`, `allenamenti_spa.js` | voto di partenza delle schede (6) |
 | `MINUTI_MIN` / `MINUTI_MAX` | `partita_spa.js` | estremi dello slider minuti (1 e 50) |
-| `moduli` | `partita_spa.js` | moduli disponibili e nomi dei ruoli |
+| `moduli` | `partita_spa.js` | moduli disponibili e nomi dei ruoli: le `<option>` del menù le genera il codice da questa mappa |
 | soglie `6` / `7` / `8` | `statistiche.js`, `classeMedia` | dove cambia il colore delle celle |
+| `TIMEOUT_AVVIO` | `index.js` | quanto si aspetta il database prima di arrendersi (12 s) |
 | `min`/`max`/`step` degli slider voto | `partita_spa.js`, `allenamenti_spa.js` | scala 1-10 a passi di 0,25 |
 | `3000` | `utils.js` | durata in millisecondi degli avvisi a fondo schermo |
 | `VERSIONE` | `sw.js` | versione della cache del service worker |
@@ -319,6 +328,12 @@ dedicato.
 | `sant-antonio` | Motra Sant'Antonio | grigio `#1f2937` | `manifest-sant-antonio.json` |
 
 `santa-maria` è la squadra predefinita.
+
+`index.html` dichiara di proposito il manifest **neutro** (`manifest.json`)
+e il tema predefinito: è `applicaIdentitaSquadra()` a sostituirli con
+quelli giusti. Cablando lì una delle due squadre, il sito dell'altra
+scaricava comunque prima il manifest sbagliato — e il browser legge il
+manifest proprio nel momento dell'installazione.
 
 Ogni altra squadra alla radice del database resta consultabile con
 `?team=<id>` e riceve un nome ricavato dall'id — `senior` diventa
@@ -394,6 +409,11 @@ Il service worker usa **network-first** sul codice: un deploy si vede al
 primo ricaricamento. `netlify.toml` forza inoltre la riconvalida di
 `sw.js`, `index.html`, JS e CSS, che hanno nomi fissi senza impronta.
 
+Il worker nuovo **non si attiva da solo** (niente `skipWaiting`): resta in
+attesa finché la pagina non viene ricaricata. È quello che l'avviso
+"Aggiornamento disponibile: ricarica la pagina" promette all'utente, ed è
+il motivo dei due ricaricamenti descritti qui sotto.
+
 Se un telefono resta indietro, di solito basta ricaricare due volte: la
 prima scarica il service worker nuovo, la seconda lo usa. Cambia
 `VERSIONE` in `sw.js` solo se serve buttare via tutta la cache.
@@ -404,6 +424,12 @@ Il database è **in lettura e scrittura aperta**, senza autenticazione.
 Scelta consapevole: il sito è a uso personale. Chi conosce l'indirizzo può
 leggere e modificare tutto.
 
+`netlify.toml` aggiunge `X-Content-Type-Options`, `X-Frame-Options` e
+`Referrer-Policy`. Volutamente **nessuna Content-Security-Policy**: andrebbe
+scritta su misura per Firebase, cdnjs e lo script inline in `index.html`, e
+una CSP sbagliata rompe il sito in silenzio. Va provata su un deploy di
+anteprima prima di metterla.
+
 ### Cose da sistemare, prima o poi
 
 - `immagini/favicon.svg` pesa circa 330 KB (export da Illustrator). Vale la
@@ -411,7 +437,10 @@ leggere e modificare tutto.
   supporta le icone SVG.
 - L'SDK Firebase è la versione `compat` 9.6.1, deprecata. Funziona, ma
   prima o poi conviene passare alla v10 modulare.
-- Offline l'app si apre ma non ha dati: il database ha bisogno della rete.
+- Offline l'app si apre ma resta senza dati: il database ha bisogno della
+  rete. Le letture di Firebase in quel caso non falliscono, restano appese:
+  per questo l'avvio ha un `TIMEOUT_AVVIO`, altrimenti lo scheletro di
+  caricamento non sparirebbe mai.
 
 ### Backup
 

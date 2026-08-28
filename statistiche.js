@@ -18,6 +18,8 @@
 
    Il tasso di presenza parte dal primo evento in cui il giocatore compare,
    cosi' chi si aggrega a stagione iniziata non eredita assenze altrui.
+   Da quel momento in poi pero' contano TUTTI gli eventi, anche per chi
+   non e' piu' in rosa: vedi la nota su nomiStorici.
    ========================================================= */
 export const PESO_BASE = 0.7;
 export const PESO_PRESENZA = 0.3;
@@ -53,15 +55,42 @@ export function estraiVoto(dati) {
   return { sv: false, valore: isNaN(n) ? NaN : n };
 }
 
-/* Nomi da considerare per un evento: la rosa attuale piu' eventuali
-   giocatori presenti nello storico ma non piu' in rosa (altrimenti le
-   loro presenze sparirebbero dalle statistiche e dalla cronologia). */
+/* Nomi da mostrare nel dettaglio di UN evento: la rosa attuale piu' i
+   giocatori che compaiono in quell'evento pur non essendo piu' in rosa
+   (altrimenti le loro presenze sparirebbero dalla cronologia).
+   Per il CALCOLO serve invece nomiStorici: vedi la nota li' sotto. */
 export function nomiEvento(ev, tipo, rosa) {
   const base = tipo === "allenamento" ? [...rosa] : [...rosa, "Squadra"];
   const noti = new Set(base);
   const extra = Object.keys(ev.giocatori || {}).filter(
     (n) => !noti.has(n) && !(tipo === "allenamento" && n === "Squadra")
   );
+  return [...base, ...extra];
+}
+
+/* Nomi da considerare nel CALCOLO: rosa attuale piu' chiunque compaia
+   almeno una volta nello storico, indipendentemente dall'evento.
+
+   La differenza con nomiEvento non e' un dettaglio. Contando gli extra
+   evento per evento, un ex giocatore entrava nel conteggio solo negli
+   eventi in cui era presente: presenze e disponibili coincidevano
+   sempre, quindi risultava al 100% di presenza e la sua MV non veniva
+   mai corretta. A parita' di voti e di presenze scavalcava in classifica
+   chi e' ancora in rosa. */
+export function nomiStorici(eventi, tipo, rosa) {
+  const base = tipo === "allenamento" ? [...rosa] : [...rosa, "Squadra"];
+  const noti = new Set(base);
+  const extra = [];
+
+  eventi.forEach((ev) => {
+    Object.keys(ev.giocatori || {}).forEach((nome) => {
+      if (noti.has(nome)) return;
+      if (tipo === "allenamento" && nome === "Squadra") return;
+      noti.add(nome);
+      extra.push(nome);
+    });
+  });
+
   return [...base, ...extra];
 }
 
@@ -100,9 +129,15 @@ export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa)
   const ultimoVotoAll = {};
   const ultimoVotoPar = {};
 
+  // L'elenco dei nomi si calcola UNA volta su tutto lo storico: solo cosi'
+  // chi non e' piu' in rosa viene confrontato con tutti gli eventi dal suo
+  // primo in poi, e non soltanto con quelli in cui era presente.
+  const nomiAll = nomiStorici(allenamentiCrescenti, "allenamento", rosa);
+  const nomiPar = nomiStorici(partiteCrescenti, "partita", rosa);
+
   allenamentiCrescenti.forEach((ev) => {
     ev._frecce = {};
-    nomiEvento(ev, "allenamento", rosa).forEach((nome) => {
+    nomiAll.forEach((nome) => {
       if (nome === "Squadra") return;
       const r = rec(statsAll, nome);
       const dati = ev.giocatori && ev.giocatori[nome];
@@ -140,7 +175,7 @@ export function calcolaStatistiche(allenamentiCrescenti, partiteCrescenti, rosa)
     // Una partita con la sola formazione salvata non produce statistiche
     if (!ev.giocatori || Object.keys(ev.giocatori).length === 0) return;
 
-    nomiEvento(ev, "partita", rosa).forEach((nome) => {
+    nomiPar.forEach((nome) => {
       const r = rec(statsPar, nome);
       const dati = ev.giocatori[nome];
 

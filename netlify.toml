@@ -32,3 +32,15 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# Header di sicurezza di base, validi per tutto il sito.
+# Volutamente NESSUNA Content-Security-Policy: andrebbe scritta su misura
+# per Firebase, cdnjs e lo script inline di configurazione in index.html,
+# e una CSP sbagliata rompe il sito in silenzio. Va aggiunta solo dopo
+# averla provata su un deploy di anteprima.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"

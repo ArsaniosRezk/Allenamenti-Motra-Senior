@@ -18,6 +18,10 @@ const salvaPagellaBtn = document.getElementById("salvaPagella");
 const MINUTI_MIN = 1;
 const MINUTI_MAX = 50;
 
+/* Voto di partenza di ogni scheda. Era 1: salvando senza toccare gli
+   slider si assegnava il minimo a tutta la formazione. */
+const VOTO_DEFAULT = 6;
+
 const moduli = {
     "3-2-1": [
         [{ id: "att", label: "PC" }],
@@ -53,6 +57,19 @@ const idsPanchina = Array.from({ length: 10 }, (_, i) => "p" + (i + 1));
 /* Identificatore sicuro da usare negli attributi id="" */
 function slug(nome) {
     return String(nome).replace(/[^a-zA-Z0-9]+/g, "_");
+}
+
+/* Le opzioni del <select> le genera la mappa `moduli`: aggiungerne uno
+   qui bastava a farlo funzionare ma non a renderlo scegliibile, perche'
+   le <option> erano scritte a mano in index.html. */
+function riempiModuli() {
+    if (!selectModulo) return;
+    const corrente = selectModulo.value;
+    selectModulo.innerHTML = "";
+    Object.keys(moduli).forEach((nome) =>
+        selectModulo.appendChild(new Option(nome, nome))
+    );
+    selectModulo.value = moduli[corrente] ? corrente : MODULO_DEFAULT;
 }
 
 function moduloCorrente() {
@@ -139,20 +156,36 @@ function renderCampo(valoriIniziali) {
     // Prima si creano tutte le opzioni, poi si riassegnano i valori:
     // assegnare un valore a una select vuota non avrebbe alcun effetto.
     collegaSelect();
-    riempiTutteLeOpzioni();
+    riempiTutteLeOpzioni(valori);
     applicaValori(valori);
     aggiornaOpzioniSelect();
 }
 
-/* Riempie ogni select con l'intera rosa (senza filtri) */
-function riempiTutteLeOpzioni() {
+/* Rosa attuale piu' chi e' gia' schierato pur non essendo piu' in rosa.
+   Senza questo, riaprendo una partita vecchia gli ex giocatori non
+   avrebbero un'opzione da selezionare: sparirebbero dal campo e
+   risalvando la formazione verrebbero cancellati dal record. */
+function nomiSelezionabili(valoriCorrenti) {
+    const nomi = [...giocatori];
+    const noti = new Set(nomi);
+    valoriCorrenti.forEach((nome) => {
+        if (!nome || noti.has(nome)) return;
+        noti.add(nome);
+        nomi.push(nome);
+    });
+    return nomi;
+}
+
+/* Riempie ogni select con tutti i nomi disponibili (senza filtri) */
+function riempiTutteLeOpzioni(valoriIniziali) {
+    const nomi = nomiSelezionabili(Object.values(valoriIniziali || {}));
     getIdsCorrenti().forEach((id) => {
         const select = document.getElementById(id);
         if (!select) return;
         const corrente = select.value;
         select.innerHTML = "";
         select.appendChild(new Option("-", ""));
-        giocatori.forEach((nome) => {
+        nomi.forEach((nome) => {
             select.appendChild(new Option(abbreviaNomeFormazione(nome), nome));
         });
         select.value = corrente;
@@ -168,6 +201,8 @@ function aggiornaOpzioniSelect() {
         if (el && el.value) selezionati.add(el.value);
     });
 
+    const nomi = nomiSelezionabili([...selezionati]);
+
     ids.forEach((id) => {
         const select = document.getElementById(id);
         if (!select) return;
@@ -176,7 +211,7 @@ function aggiornaOpzioniSelect() {
         select.innerHTML = "";
         select.appendChild(new Option("-", ""));
 
-        giocatori.forEach((nome) => {
+        nomi.forEach((nome) => {
             if (!selezionati.has(nome) || nome === valoreCorrente) {
                 const opt = new Option(abbreviaNomeFormazione(nome), nome);
                 if (nome === valoreCorrente) opt.selected = true;
@@ -228,7 +263,7 @@ function creaPlayerCardPartita(nome, datiVoto) {
     const isSV = dati.voto === "S.V." || dati.votoFinale === "S.V.";
 
     const votoNumerico = parseFloat(dati.voto);
-    const voto = isSV || isNaN(votoNumerico) ? 1 : votoNumerico;
+    const voto = isNaN(votoNumerico) ? VOTO_DEFAULT : votoNumerico;
 
     let minuti = parseInt(dati.minuti, 10);
     if (isNaN(minuti) || minuti < MINUTI_MIN) minuti = MINUTI_MIN;
@@ -278,7 +313,7 @@ function creaPlayerCardPartita(nome, datiVoto) {
         "</div>" +
         '<div class="pc-slider-wrapper">' +
         '<input type="range" class="input-voto-slider pc-slider" min="1" max="10" step="0.25" value="' +
-        (isSV ? 1 : voto) + '" data-nome="' + nomeAttr + '"' + (isSV ? " disabled" : "") + ">" +
+        voto + '" data-nome="' + nomeAttr + '"' + (isSV ? " disabled" : "") + ">" +
         "</div></div>" +
         boxMinuti +
         "</div>" +
@@ -685,6 +720,7 @@ quandoDatiPronti(() => {
     // Nessuna data preimpostata: la sceglie l'utente, cosi' non si rischia
     // di salvare per sbaglio sulla giornata di oggi.
     aggiornaStatoData();
+    riempiModuli();
     renderCampo({});
     calcolaStatistichePartite();
     aggiornaStatoBottone();

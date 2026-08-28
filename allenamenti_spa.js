@@ -14,6 +14,10 @@ const dataInput = document.getElementById("dataAllenamento");
 // Id del record aperto: se valorizzato si aggiorna, altrimenti se ne crea uno nuovo
 let allenamentoEsistenteId = null;
 
+/* Voto di partenza di ogni scheda. Era 1: salvando senza toccare gli
+   slider si assegnava il minimo a tutta la rosa. */
+const VOTO_DEFAULT = 6;
+
 /* =========================================================
    RENDER
    ========================================================= */
@@ -43,11 +47,12 @@ function creaPlayerCardAllenamento(nome, index) {
         '<div class="pc-vote-row">' +
         '<div class="pc-vote-header">' +
         '<span class="pc-vote-label">Voto</span>' +
-        '<span id="valore-all-' + index + '" class="pc-vote-value">1.00</span>' +
+        '<span id="valore-all-' + index + '" class="pc-vote-value">' +
+        VOTO_DEFAULT.toFixed(2) + "</span>" +
         "</div>" +
         '<div class="pc-slider-wrapper">' +
-        '<input type="range" class="input-voto-slider pc-slider input-all" min="1" max="10" step="0.25" value="1" data-index="' +
-        index + '">' +
+        '<input type="range" class="input-voto-slider pc-slider input-all" min="1" max="10" step="0.25" value="' +
+        VOTO_DEFAULT + '" data-index="' + index + '">' +
         "</div></div>" +
         '<div class="pc-extras-row">' +
         creaToggle("Atletica", index, "bonusAtletica") +
@@ -55,7 +60,7 @@ function creaPlayerCardAllenamento(nome, index) {
         "</div></div>" +
         '<div class="pc-footer" id="footer-all-' + index + '">' +
         '<textarea placeholder="Commento..." name="commento" data-index="' + index +
-        '" class="input-commento pc-comment-input commento-area"></textarea>' +
+        '" class="input-commento pc-comment-input"></textarea>' +
         "</div></div>"
     );
 }
@@ -77,6 +82,21 @@ function initAllenamenti() {
 
     document.querySelectorAll("#lista-giocatori .toggle-3").forEach(aggiornaToggleVisual);
 }
+
+/* =========================================================
+   SLIDER DEL VOTO
+   ---------------------------------------------------------
+   Delegato, cosi' sopravvive al re-render della lista.
+   Le schede allenamento indirizzano il numero per data-index
+   (`valore-all-N`), quelle partita per nome: e' il motivo per cui
+   l'handler in partita_spa.js scarta le slider con classe
+   `input-all` e questo deve stare qui.
+   ========================================================= */
+document.addEventListener("input", (e) => {
+    if (!e.target.classList.contains("input-all")) return;
+    const span = document.getElementById("valore-all-" + e.target.dataset.index);
+    if (span) span.textContent = parseFloat(e.target.value).toFixed(2);
+});
 
 /* =========================================================
    TOGGLE A 3 STATI (-5% / 0% / +5%)
@@ -137,7 +157,7 @@ function impostaPresenza(index, presente) {
 function impostaVoto(index, voto) {
     const slider = document.querySelector('.input-all[data-index="' + index + '"]');
     const span = document.getElementById("valore-all-" + index);
-    const valore = isNaN(parseFloat(voto)) ? 1 : parseFloat(voto);
+    const valore = isNaN(parseFloat(voto)) ? VOTO_DEFAULT : parseFloat(voto);
     if (slider) slider.value = valore;
     if (span) span.textContent = valore.toFixed(2);
 }
@@ -161,7 +181,7 @@ function impostaCommento(index, testo) {
 function resetForm() {
     listaGiocatori.forEach((_, index) => {
         impostaPresenza(index, true);
-        impostaVoto(index, 1);
+        impostaVoto(index, VOTO_DEFAULT);
         impostaToggle(index, "bonusAtletica", 0);
         impostaToggle(index, "bonusPartitella", 0);
         impostaCommento(index, "");
