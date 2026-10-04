@@ -57,7 +57,7 @@ const NICKNAMES_PERSONA = {
   "Andreas Girgis": "Andreas",
   "Antony Ibrahim": "Tony",
   "Bishoy Sameh": "Bisho",
-  "Kirelos Wasef": "Gixi"
+  "Kirolos Wasef": "Gixi"
 };
 
 // 2. Funzione che calcola la "radice" del nome
