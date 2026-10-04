@@ -415,8 +415,13 @@ Ogni altra squadra alla radice del database resta consultabile con
 `?team=<id>` e riceve un nome ricavato dall'id — `senior` diventa
 "Motra Senior" — più il tema predefinito e `manifest.json`.
 
-Le due app installate sul telefono **condividono icona, colori e sfondo**:
-a distinguerle è soltanto il nome sotto l'icona.
+Le due app installate sul telefono **condividono colori e sfondo**; a
+distinguerle sono il nome e l'icona (`sa` per Sant'Antonio, `sm` per Santa
+Maria). Le voci di `PRESENTAZIONE` ne indicano due: `icona` va nella favicon
+della scheda, `iconaApp` nell'`apple-touch-icon`, ed è
+`applicaIdentitaSquadra()` a metterle. Le squadre senza voce usano quelle di
+Santa Maria, che sono anche quelle scritte in `index.html` e in
+`manifest.json`.
 
 Ogni manifest dedicato porta la squadra nel proprio `start_url`
 (`./index.html?team=santa-maria#stats`). Serve a chi installa l'app da un
@@ -425,21 +430,24 @@ ripartiva dalla squadra predefinita.
 
 ### L'icona dell'app
 
-`immagini/favicon.svg` è dichiarata `any` e `maskable` insieme, quindi è
-costruita per reggere entrambi gli usi:
+Ogni squadra ha due PNG, perché nessuna immagine da sola regge tutti gli usi:
 
-```
-865 x 865
-├── <rect> di sfondo pieno         evita il bordo bianco che Android
-│                                  aggiunge alle icone non mascherabili
-└── <g scale(0.8)>  il logo        sta nell'80% centrale, la zona che
-                                   tutte le maschere garantiscono visibile
-```
+| File | Sfondo | Dove si usa |
+|---|---|---|
+| `favicon-sa.png` / `favicon-sm.png` | trasparente | favicon, icona `any` dei manifest |
+| `maskable-sa.png` / `maskable-sm.png` | pieno, 512x512 | icona `maskable` dei manifest, `apple-touch-icon` |
 
-Quel **80% non è decorativo**: Android ritaglia l'icona a cerchio, goccia o
-quadrato stondato a seconda del telefono, e solo il cerchio centrale
-all'80% è sempre al sicuro. Ingrandendo il logo oltre quella soglia gli
-angoli vengono tagliati; rimpicciolendolo ricompare il bordo bianco largo.
+Le versioni trasparenti hanno il logo fino ai bordi. Android le metterebbe
+su un **cerchio bianco**, e iOS riempirebbe di **nero** le parti
+trasparenti. Le `maskable` servono a evitarlo: hanno lo sfondo del colore
+del logo (`#472b1a` marrone per Sant'Antonio, `#0f2d41` blu per Santa
+Maria) e il logo ridotto finché tutto sta nel cerchio centrale all'80%,
+l'unica zona che Android lascia visibile qualunque forma di ritaglio usi
+(cerchio, goccia, quadrato stondato).
+
+Se cambia un logo, la `maskable` va rifatta con le stesse regole: 512x512,
+sfondo pieno, nessun punto del logo fuori dal cerchio di raggio 205 px
+attorno al centro.
 
 Cambiando l'icona va anche alzata `VERSIONE` in `sw.js`, altrimenti chi ha
 già visitato il sito continua a vedere quella vecchia: le immagini sono in
@@ -525,10 +533,6 @@ salvataggio se è già stata fatta al cambio data.
 
 ### Cose da sistemare, prima o poi
 
-- `immagini/favicon.svg` pesa circa 330 KB (export da Illustrator, 1123
-  tracciati, nessun raster). Vale la pena passarlo in SVGO e affiancargli un
-  PNG 512x512 per iOS, che non supporta le icone SVG. Ridurne la precisione a
-  mano è un rischio grafico: meglio uno strumento.
 - L'SDK Firebase è la versione `compat` 9.6.1, deprecata. Funziona, ma
   prima o poi conviene passare alla v10 modulare.
 - Offline l'app si apre ma resta senza dati: il database ha bisogno della

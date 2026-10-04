@@ -19,12 +19,16 @@
 const PRESENTAZIONE = {
     "sant-antonio": {
         nome: "Motra Sant'Antonio",             // titolo pagina e nome della PWA
-        manifest: "manifest-sant-antonio.json"  // manifest PWA dedicato
+        manifest: "manifest-sant-antonio.json", // manifest PWA dedicato
+        icona: "immagini/favicon-sa.png",       // favicon, sfondo trasparente
+        iconaApp: "immagini/maskable-sa.png"    // icona iOS, sfondo pieno
     },
 
     "santa-maria": {
         nome: "Motra Santa Maria",
-        manifest: "manifest-santa-maria.json"
+        manifest: "manifest-santa-maria.json",
+        icona: "immagini/favicon-sm.png",
+        iconaApp: "immagini/maskable-sm.png"
     }
 };
 
@@ -37,6 +41,10 @@ const SQUADRA_DEFAULT = "santa-maria";
    theme_color dei manifest e al <meta name="theme-color"> di index.html. */
 const TEMA_PREDEFINITO = "#1f2937";
 const MANIFEST_PREDEFINITO = "manifest.json";
+const ICONA_PREDEFINITA = "immagini/favicon-sm.png";
+/* iOS riempie di nero le parti trasparenti dell'apple-touch-icon:
+   li' serve la versione a sfondo pieno, la stessa "maskable" dei manifest. */
+const ICONA_APP_PREDEFINITA = "immagini/maskable-sm.png";
 
 /* Mappa dominio -> squadra.
    Quando pubblicherai i due siti su Netlify basta aggiungere qui i loro
@@ -85,6 +93,8 @@ function componiSquadra(id) {
         nome: scheda.nome || nomePredefinito(id),
         tema: scheda.tema || TEMA_PREDEFINITO,
         manifest: scheda.manifest || MANIFEST_PREDEFINITO,
+        icona: scheda.icona || ICONA_PREDEFINITA,
+        iconaApp: scheda.iconaApp || ICONA_APP_PREDEFINITA,
         dedicata: Boolean(PRESENTAZIONE[id])
     };
 }
@@ -111,7 +121,7 @@ function risolviSquadra() {
 export const SQUADRA = risolviSquadra();
 export const ID_SQUADRA = SQUADRA.id;
 
-/* Applica titolo, colore barra e manifest della squadra corrente. */
+/* Applica titolo, colore barra, icona e manifest della squadra corrente. */
 export function applicaIdentitaSquadra() {
     document.title = SQUADRA.nome;
 
@@ -122,6 +132,12 @@ export function applicaIdentitaSquadra() {
     if (linkManifest && SQUADRA.manifest) {
         linkManifest.setAttribute("href", SQUADRA.manifest);
     }
+
+    const linkIcona = document.querySelector('link[rel="icon"]');
+    if (linkIcona) linkIcona.setAttribute("href", SQUADRA.icona);
+
+    const linkIconaApp = document.querySelector('link[rel="apple-touch-icon"]');
+    if (linkIconaApp) linkIconaApp.setAttribute("href", SQUADRA.iconaApp);
 
     document.documentElement.dataset.squadra = SQUADRA.id;
 }

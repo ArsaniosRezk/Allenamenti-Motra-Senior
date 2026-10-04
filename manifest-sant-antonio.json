@@ -12,15 +12,15 @@
     "theme_color": "#1f2937",
     "icons": [
         {
-            "src": "immagini/favicon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
+            "src": "immagini/favicon-sa.png",
+            "sizes": "512x512",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "immagini/favicon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
+            "src": "immagini/maskable-sa.png",
+            "sizes": "512x512",
+            "type": "image/png",
             "purpose": "maskable"
         }
     ]

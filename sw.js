@@ -8,7 +8,7 @@
    - richieste al Realtime Database -> mai intercettate.
 */
 
-const VERSIONE = "v5";  // v5: chiave di cache normalizzata per le navigazioni
+const VERSIONE = "v6";  // v6: icone PNG per squadra (normali e maskable) al posto di favicon.svg
 const CACHE_SHELL = "motra-shell-" + VERSIONE;
 const CACHE_STATICI = "motra-statici-" + VERSIONE;
 const CACHE_ATTUALI = [CACHE_SHELL, CACHE_STATICI];
@@ -33,7 +33,12 @@ const SHELL = [
 /* Va nella cache dei STATICI, non in quella della shell: il fetch handler
    smista le immagini per estensione e le cerca solo li'. Metterla nella
    shell equivarrebbe a non precaricarla affatto. */
-const STATICI = ["./immagini/favicon.svg"];
+const STATICI = [
+    "./immagini/favicon-sm.png",
+    "./immagini/favicon-sa.png",
+    "./immagini/maskable-sm.png",
+    "./immagini/maskable-sa.png"
+];
 
 // Host esterni di cui vale la pena tenere una copia locale
 const CDN_CONSENTITI = [

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestione squadre (locale)</title>
+  <link rel="stylesheet" href="colors.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background-color: var(--sfondo);
+      color: var(--testo);
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 24px;
+    }
+
+    section {
+      background-color: var(--sfondo-card);
+      border: 1px solid var(--secondary);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 0.75rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--testo-muted);
+      margin: 0 0 14px;
+    }
+
+    input {
+      background-color: var(--sfondo);
+      border: 1px solid var(--secondary);
+      color: var(--testo);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    button {
+      font: inherit;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background-color: var(--primary);
+      color: var(--testo-inverse);
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    form {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    form input {
+      flex: 1 1 160px;
+      width: auto;
+    }
+
+    /* --- scelta iniziale --- */
+    .elenco-squadre {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .chip-squadra {
+      background-color: var(--secondary);
+      color: var(--testo);
+    }
+
+    .btn-nuova {
+      background-color: var(--success);
+      width: 100%;
+    }
+
+    .btn-indietro {
+      background: none;
+      color: var(--testo-muted);
+      padding: 0;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+    }
+
+    .btn-indietro:hover:not(:disabled) {
+      background: none;
+      color: var(--testo);
+    }
+
+    /* --- elenchi giocatori --- */
+    ul {
+      list-style: none;
+      margin: 0 0 16px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background-color: var(--sfondo);
+      border: 1px solid var(--secondary);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .btn-rimuovi {
+      background-color: var(--btn-elimina-bg);
+      color: var(--btn-elimina-text);
+      border: 1px solid var(--btn-elimina-border);
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    .btn-rimuovi:hover:not(:disabled) {
+      background-color: var(--error);
+      color: var(--testo-inverse);
+    }
+
+    .vuoto {
+      color: var(--testo-muted);
+      font-size: 0.88rem;
+      border: 1px dashed var(--secondary);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .campo-nome-squadra {
+      margin-bottom: 16px;
+    }
+
+    .campo-nome-squadra label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--testo-muted);
+      margin-bottom: 6px;
+    }
+
+    .separatore {
+      border: none;
+      border-top: 1px solid var(--secondary);
+      margin: 18px 0 14px;
+    }
+
+    .btn-conferma {
+      background-color: var(--success);
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .azioni-squadra {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .azioni-squadra button {
+      flex: 1 1 160px;
+    }
+
+    .btn-archivia {
+      background-color: var(--warning);
+      color: #1f2937;
+    }
+
+    .btn-archivia:hover:not(:disabled) {
+      background-color: #d97706;
+      color: var(--testo-inverse);
+    }
+
+    .btn-elimina-squadra {
+      background-color: transparent;
+      color: var(--error);
+      border: 1px solid var(--error);
+    }
+
+    .btn-elimina-squadra:hover:not(:disabled) {
+      background-color: var(--error);
+      color: var(--testo-inverse);
+    }
+
+    .nota {
+      font-size: 0.78rem;
+      color: var(--testo-muted);
+      margin: 14px 0 0;
+      line-height: 1.5;
+    }
+
+    .nota code {
+      color: var(--testo);
+      background-color: var(--sfondo);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    #avviso {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      padding: 12px 20px;
+      border-radius: 10px;
+      color: var(--testo-inverse);
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      display: none;
+      z-index: 10;
+    }
+
+    #avviso.success {
+      background-color: var(--success);
+    }
+
+    #avviso.error {
+      background-color: var(--error);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Gestione squadre</h1>
+
+  <!-- ============ Vista 1: scelta ============ -->
+  <section id="vista-scelta">
+    <h2>Scegli una squadra</h2>
+    <div class="elenco-squadre" id="elenco-squadre"></div>
+    <div class="vuoto" id="nessuna-squadra" hidden>Nessuna squadra attiva sul database</div>
+    <hr class="separatore" />
+    <button type="button" class="btn-nuova" id="btn-nuova">
+      <i class="fas fa-plus"></i> Crea una nuova squadra
+    </button>
+  </section>
+
+  <!-- ============ Vista 2: creazione ============ -->
+  <section id="vista-crea" hidden>
+    <button type="button" class="btn-indietro"><i class="fas fa-arrow-left"></i> Torna alla scelta</button>
+    <h2>Nuova squadra</h2>
+
+    <div class="campo-nome-squadra">
+      <label for="nome-squadra">Nome squadra</label>
+      <input type="text" id="nome-squadra" placeholder="es. juniores" autocomplete="off" />
+    </div>
+
+    <form id="form-nuovo-giocatore">
+      <input type="text" id="nuovo-giocatore-crea" placeholder="Nome Cognome" autocomplete="off" />
+      <button type="submit">Aggiungi</button>
+    </form>
+
+    <ul id="elenco-nuovi"></ul>
+    <div class="vuoto" id="nuovi-vuoto">Nessun giocatore: la squadra viene creata vuota</div>
+
+    <button type="button" class="btn-conferma" id="btn-crea">Crea squadra</button>
+
+    <p class="nota">
+      Il nome diventa il ramo sul database (<code>nome/rosa</code>): minuscole,
+      numeri e trattini. La squadra e&#769; gia&#769; consultabile con
+      <code>?team=&lt;id&gt;</code>; per darle nome, colori e sito propri va
+      aggiunta anche a <code>PRESENTAZIONE</code> in <code>utils.js</code>.
+    </p>
+  </section>
+
+  <!-- ============ Vista 3: rosa ============ -->
+  <section id="vista-rosa" hidden>
+    <button type="button" class="btn-indietro"><i class="fas fa-arrow-left"></i> Torna alla scelta</button>
+    <h2 id="titolo-rosa">Rosa</h2>
+
+    <ul id="elenco-giocatori"></ul>
+    <div class="vuoto" id="rosa-vuota" hidden>Nessun giocatore in rosa</div>
+
+    <form id="form-giocatore">
+      <input type="text" id="nuovo-giocatore" placeholder="Nome Cognome" autocomplete="off" />
+      <button type="submit">Aggiungi</button>
+    </form>
+
+    <p class="nota">
+      Togliere un giocatore dalla rosa non cancella il suo storico: voti e
+      presenze restano sul database e continuano a comparire nelle statistiche,
+      contrassegnati con un asterisco.
+    </p>
+
+    <hr class="separatore" />
+
+    <h2>Azioni sulla squadra</h2>
+    <div class="azioni-squadra">
+      <button type="button" class="btn-archivia" id="btn-archivia">
+        <i class="fas fa-box-archive"></i> Archivia squadra
+      </button>
+      <button type="button" class="btn-elimina-squadra" id="btn-elimina-squadra">
+        <i class="fas fa-trash"></i> Elimina squadra
+      </button>
+    </div>
+
+    <p class="nota">
+      <strong>Archivia</strong> sposta tutto sotto <code>archivio/</code>: i dati
+      restano ma la squadra sparisce da questa pagina e dai siti.
+      <strong>Elimina</strong> cancella rosa, allenamenti e partite: non si torna
+      indietro.
+    </p>
+  </section>
+
+  <div id="avviso"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyADt6AZ6c1E1cXp9ZY8NgJoWC4VTGXUyk0",
+      authDomain: "allenamenti-motra-senior.firebaseapp.com",
+      projectId: "allenamenti-motra-senior",
+      storageBucket: "allenamenti-motra-senior.firebasestorage.app",
+      messagingSenderId: "816511360311",
+      appId: "1:816511360311:web:d50530672d926d48f0ceb2",
+      databaseURL:
+        "https://allenamenti-motra-senior-default-rtdb.europe-west1.firebasedatabase.app",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Le squadre dentro questo ramo sono in archivio e non vanno mostrate
+    const RAMO_ARCHIVIO = "archivio";
+
+    const $ = (id) => document.getElementById(id);
+    let squadre = [];
+    let squadraAttiva = null;
+    let rosaInCreazione = [];
+
+    function avvisa(messaggio, tipo = "success") {
+      const el = $("avviso");
+      el.textContent = messaggio;
+      el.className = tipo;
+      el.style.display = "block";
+      clearTimeout(avvisa.timer);
+      avvisa.timer = setTimeout(() => (el.style.display = "none"), 3000);
+    }
+
+    function normalizza(nome) {
+      return nome.trim().replace(/\s+/g, " ");
+    }
+
+    /* ---------------------------------------------------------
+       NAVIGAZIONE FRA LE TRE VISTE
+       --------------------------------------------------------- */
+    function mostraVista(nome) {
+      ["vista-scelta", "vista-crea", "vista-rosa"].forEach((v) => {
+        $(v).hidden = v !== nome;
+      });
+    }
+
+    document.querySelectorAll(".btn-indietro").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        squadraAttiva = null;
+        disegnaSquadre();
+        mostraVista("vista-scelta");
+      })
+    );
+
+    /* ---------------------------------------------------------
+       ELENCO SQUADRE
+       I rami di primo livello del database sono le squadre.
+       Si legge via REST con ?shallow=true per avere solo le chiavi;
+       se non e' raggiungibile (es. apertura da file://) si ripiega
+       sull'SDK, che pero' scarica tutto il database.
+       --------------------------------------------------------- */
+    async function leggiSquadre() {
+      let chiavi;
+      try {
+        const risposta = await fetch(firebaseConfig.databaseURL + "/.json?shallow=true");
+        if (!risposta.ok) throw new Error("HTTP " + risposta.status);
+        chiavi = Object.keys((await risposta.json()) || {});
+      } catch (err) {
+        console.warn("Lettura shallow non riuscita, uso l'SDK:", err);
+        const snap = await db.ref("/").once("value");
+        chiavi = Object.keys(snap.val() || {});
+      }
+      return chiavi.filter((k) => k !== RAMO_ARCHIVIO).sort();
+    }
+
+    function disegnaSquadre() {
+      const elenco = $("elenco-squadre");
+      elenco.innerHTML = "";
+      $("nessuna-squadra").hidden = squadre.length > 0;
+
+      squadre.forEach((id) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip-squadra";
+        btn.textContent = id;
+        btn.addEventListener("click", () => apriSquadra(id));
+        elenco.appendChild(btn);
+      });
+    }
+
+    /* ---------------------------------------------------------
+       VISTA ROSA (squadra esistente)
+       --------------------------------------------------------- */
+    async function apriSquadra(id) {
+      squadraAttiva = id;
+      $("titolo-rosa").textContent = "Rosa di " + id;
+      mostraVista("vista-rosa");
+      await disegnaRosa();
+      $("nuovo-giocatore").focus();
+    }
+
+    async function leggiRosa() {
+      const snap = await db.ref(squadraAttiva + "/rosa").once("value");
+      // La rosa puo' essere salvata come oggetto o come array: entrambe
+      // le forme danno coppie chiave/nome utilizzabili.
+      return Object.entries(snap.val() || {})
+        .filter(([, nome]) => typeof nome === "string" && nome.trim() !== "")
+        .map(([chiave, nome]) => ({ chiave, nome: nome.trim() }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "it"));
+    }
+
+    async function disegnaRosa() {
+      const elenco = $("elenco-giocatori");
+      elenco.innerHTML = "";
+
+      let giocatori;
+      try {
+        giocatori = await leggiRosa();
+      } catch (err) {
+        console.error(err);
+        return avvisa("Errore nel caricamento della rosa", "error");
+      }
+
+      $("rosa-vuota").hidden = giocatori.length > 0;
+
+      giocatori.forEach(({ chiave, nome }) => {
+        elenco.appendChild(
+          rigaGiocatore(nome, () => rimuoviGiocatore(chiave, nome))
+        );
+      });
+    }
+
+    function rigaGiocatore(nome, alRimuovi) {
+      const li = document.createElement("li");
+
+      const span = document.createElement("span");
+      span.textContent = nome;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-rimuovi";
+      btn.innerHTML = '<i class="fas fa-trash"></i> Rimuovi';
+      btn.addEventListener("click", alRimuovi);
+
+      li.appendChild(span);
+      li.appendChild(btn);
+      return li;
+    }
+
+    async function rimuoviGiocatore(chiave, nome) {
+      if (!confirm('Rimuovere "' + nome + '" dalla rosa di ' + squadraAttiva + "?")) return;
+      try {
+        await db.ref(squadraAttiva + "/rosa/" + chiave).remove();
+        avvisa(nome + " rimosso");
+        await disegnaRosa();
+      } catch (err) {
+        console.error(err);
+        avvisa("Errore nella rimozione", "error");
+      }
+    }
+
+    $("form-giocatore").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const campo = $("nuovo-giocatore");
+      const nome = normalizza(campo.value);
+      if (!nome) return avvisa("Inserisci un nome", "error");
+
+      try {
+        const presenti = (await leggiRosa()).map((g) => g.nome.toLowerCase());
+        if (presenti.includes(nome.toLowerCase())) {
+          return avvisa(nome + " e' gia' in rosa", "error");
+        }
+        await db.ref(squadraAttiva + "/rosa").push(nome);
+        campo.value = "";
+        avvisa(nome + " aggiunto");
+        await disegnaRosa();
+        campo.focus();
+      } catch (err) {
+        console.error(err);
+        avvisa("Errore nel salvataggio", "error");
+      }
+    });
+
+    /* ---------------------------------------------------------
+       AZIONI SULLA SQUADRA: archiviazione ed eliminazione
+       --------------------------------------------------------- */
+
+    /* Confronto strutturale: Firebase puo' restituire un array dove
+       e' stato scritto un oggetto con chiavi "0","1",... e non
+       garantisce l'ordine delle chiavi, quindi si normalizza. */
+    function normalizzaContenuto(valore) {
+      if (Array.isArray(valore)) {
+        const oggetto = {};
+        valore.forEach((v, i) => {
+          if (v !== null && v !== undefined) oggetto[String(i)] = normalizzaContenuto(v);
+        });
+        return oggetto;
+      }
+      if (valore && typeof valore === "object") {
+        const ordinato = {};
+        Object.keys(valore).sort().forEach((k) => (ordinato[k] = normalizzaContenuto(valore[k])));
+        return ordinato;
+      }
+      return valore;
+    }
+
+    const stessoContenuto = (a, b) =>
+      JSON.stringify(normalizzaContenuto(a)) === JSON.stringify(normalizzaContenuto(b));
+
+    async function tornaAllaScelta(messaggio) {
+      squadraAttiva = null;
+      squadre = await leggiSquadre();
+      disegnaSquadre();
+      mostraVista("vista-scelta");
+      if (messaggio) avvisa(messaggio);
+    }
+
+    /* Sposta la squadra sotto archivio/. L'originale viene cancellato
+       solo dopo aver riletto la copia e averla trovata identica: se
+       qualcosa va storto a meta' non si perde niente. */
+    $("btn-archivia").addEventListener("click", async () => {
+      const id = squadraAttiva;
+      if (!confirm(
+        'Archiviare "' + id + '"?\n\n' +
+        "Rosa, allenamenti e partite vengono spostati sotto archivio/" + id +
+        ".\nLa squadra sparira' da questa pagina e dai siti, ma i dati restano."
+      )) return;
+
+      const btn = $("btn-archivia");
+      btn.disabled = true;
+      try {
+        const dati = (await db.ref(id).once("value")).val();
+        // == null copre sia null sia undefined
+        if (dati == null) return avvisa("Squadra vuota: niente da archiviare", "error");
+
+        const destinazione = RAMO_ARCHIVIO + "/" + id;
+        if ((await db.ref(destinazione).once("value")).val() != null) {
+          return avvisa("In archivio esiste gia' una squadra " + id, "error");
+        }
+
+        await db.ref(destinazione).set(dati);
+
+        const riletto = (await db.ref(destinazione).once("value")).val();
+        if (!stessoContenuto(dati, riletto)) {
+          return avvisa("Copia incompleta: la squadra NON e' stata cancellata", "error");
+        }
+
+        await db.ref(id).remove();
+        await tornaAllaScelta(id + " archiviata");
+      } catch (err) {
+        console.error(err);
+        avvisa("Errore durante l'archiviazione", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    /* Cancellazione definitiva: si chiede di riscrivere il nome,
+       un confirm secco sarebbe troppo facile da premere per sbaglio. */
+    $("btn-elimina-squadra").addEventListener("click", async () => {
+      const id = squadraAttiva;
+      const risposta = prompt(
+        'ELIMINAZIONE DEFINITIVA di "' + id + '"\n\n' +
+        "Vengono cancellati rosa, allenamenti e partite. Non si torna indietro.\n" +
+        "Se vuoi solo metterla da parte usa Archivia.\n\n" +
+        'Scrivi "' + id + '" per confermare:'
+      );
+
+      if (risposta === null) return;
+      if (risposta.trim() !== id) return avvisa("Nome non corrispondente: annullato", "error");
+
+      const btn = $("btn-elimina-squadra");
+      btn.disabled = true;
+      try {
+        await db.ref(id).remove();
+        await tornaAllaScelta(id + " eliminata");
+      } catch (err) {
+        console.error(err);
+        avvisa("Errore durante l'eliminazione", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    /* ---------------------------------------------------------
+       VISTA CREAZIONE
+       I giocatori si accumulano in una lista locale e vengono
+       scritti tutti insieme alla conferma: cosi' non restano
+       squadre a meta' se qualcosa va storto.
+       --------------------------------------------------------- */
+    $("btn-nuova").addEventListener("click", () => {
+      rosaInCreazione = [];
+      $("nome-squadra").value = "";
+      $("nuovo-giocatore-crea").value = "";
+      disegnaRosaInCreazione();
+      mostraVista("vista-crea");
+      $("nome-squadra").focus();
+    });
+
+    function disegnaRosaInCreazione() {
+      const elenco = $("elenco-nuovi");
+      elenco.innerHTML = "";
+      $("nuovi-vuoto").hidden = rosaInCreazione.length > 0;
+
+      rosaInCreazione.forEach((nome, i) => {
+        elenco.appendChild(
+          rigaGiocatore(nome, () => {
+            rosaInCreazione.splice(i, 1);
+            disegnaRosaInCreazione();
+          })
+        );
+      });
+    }
+
+    $("form-nuovo-giocatore").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const campo = $("nuovo-giocatore-crea");
+      const nome = normalizza(campo.value);
+      if (!nome) return avvisa("Inserisci un nome", "error");
+      if (rosaInCreazione.some((n) => n.toLowerCase() === nome.toLowerCase())) {
+        return avvisa(nome + " e' gia' nell'elenco", "error");
+      }
+
+      rosaInCreazione.push(nome);
+      campo.value = "";
+      disegnaRosaInCreazione();
+      campo.focus();
+    });
+
+    $("btn-crea").addEventListener("click", async () => {
+      const id = normalizza($("nome-squadra").value).toLowerCase();
+
+      // Il nome diventa una chiave Firebase: niente . $ # [ ] / ne' spazi
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+        return avvisa("Nome non valido: usa minuscole, numeri e trattini", "error");
+      }
+      if (id === RAMO_ARCHIVIO) return avvisa("Nome riservato all'archivio", "error");
+      if (squadre.includes(id)) return avvisa("La squadra " + id + " esiste gia'", "error");
+
+      try {
+        // Una sola scrittura per tutta la squadra.
+        // Il campo "creata" fa esistere il ramo anche senza giocatori:
+        // Firebase non sa tenere un nodo vuoto.
+        const dati = { creata: new Date().toISOString() };
+
+        if (rosaInCreazione.length > 0) {
+          const rosaRef = db.ref(id + "/rosa");
+          const rosa = {};
+          rosaInCreazione.forEach((nome) => (rosa[rosaRef.push().key] = nome));
+          dati.rosa = rosa;
+        }
+
+        await db.ref(id).set(dati);
+
+        squadre = await leggiSquadre();
+        disegnaSquadre();
+        avvisa("Squadra " + id + " creata");
+        await apriSquadra(id);
+      } catch (err) {
+        console.error(err);
+        avvisa("Errore nella creazione della squadra", "error");
+      }
+    });
+
+    /* ---------------------------------------------------------
+       AVVIO
+       --------------------------------------------------------- */
+    (async () => {
+      try {
+        squadre = await leggiSquadre();
+        disegnaSquadre();
+        mostraVista("vista-scelta");
+      } catch (err) {
+        console.error(err);
+        avvisa("Impossibile leggere le squadre dal database", "error");
+      }
+    })();
+  </script>
+</body>
+
+</html>
