@@ -50,12 +50,24 @@ const NICKNAMES = {
   "Marco": "Mar"
 };
 
+// 1b. Eccezioni per singola persona: valgono solo per quel nome e cognome
+//     e hanno la precedenza su NICKNAMES
+const NICKNAMES_PERSONA = {
+  "Andrea Abdelmesih": "Andrea",
+  "Andreas Girgis": "Andreas",
+  "Antony Ibrahim": "Tony",
+  "Bishoy Sameh": "Bisho",
+  "Kirelos Wasef": "Gixi"
+};
+
 // 2. Funzione che calcola la "radice" del nome
 function getNomeBase(fullName) {
   const [nomeReal, cognome] = separaNome(fullName);
   if (!cognome) return nomeReal; // Caso "Squadra" o giocatore senza cognome
 
-  // Prima le eccezioni manuali
+  // Prima le eccezioni manuali: la persona, poi il nome proprio
+  const persona = NICKNAMES_PERSONA[`${nomeReal} ${cognome}`];
+  if (persona) return persona;
   if (NICKNAMES[nomeReal]) return NICKNAMES[nomeReal];
 
   // Regola automatica:
