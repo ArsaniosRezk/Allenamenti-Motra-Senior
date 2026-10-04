@@ -37,6 +37,7 @@ Poi apri l'indirizzo che compare, di solito `http://localhost:3000`.
 |---|---|
 | `http://localhost:3000` | la squadra predefinita (Santa Maria) |
 | `http://localhost:3000/?team=sant-antonio` | Sant'Antonio |
+| `http://localhost:3000/?team=santa-maria-sup` | Santa Maria Sup |
 | `http://localhost:3000/?team=senior` | la stagione precedente |
 | `http://localhost:3000/gestione-squadre.html` | la pagina di gestione squadre |
 
@@ -110,6 +111,7 @@ santa-maria/
                                      minuti, commento } } }
 
 sant-antonio/       stessa struttura
+santa-maria-sup/    stessa struttura
 senior/             stagione precedente
 
 archivio/           stagioni concluse, stessa struttura per squadra
@@ -375,7 +377,8 @@ In ordine di priorità, in `utils.js`:
 ```js
 const SQUADRA_PER_HOST = {
     "motra-sant-antonio.netlify.app": "sant-antonio",
-    "motra-santa-maria.netlify.app": "santa-maria"
+    "motra-santa-maria.netlify.app": "santa-maria",
+    "motra-santa-maria-sup.netlify.app": "santa-maria-sup"
 };
 ```
 
@@ -396,6 +399,7 @@ dedicato.
 |---|---|---|
 | `santa-maria` | Motra Santa Maria | `manifest-santa-maria.json` |
 | `sant-antonio` | Motra Sant'Antonio | `manifest-sant-antonio.json` |
+| `santa-maria-sup` | Motra Santa Maria Sup | `manifest-santa-maria-sup.json` |
 
 `santa-maria` è la squadra predefinita.
 
@@ -415,9 +419,9 @@ Ogni altra squadra alla radice del database resta consultabile con
 `?team=<id>` e riceve un nome ricavato dall'id — `senior` diventa
 "Motra Senior" — più il tema predefinito e `manifest.json`.
 
-Le due app installate sul telefono **condividono colori e sfondo**; a
+Le app installate sul telefono **condividono colori e sfondo**; a
 distinguerle sono il nome e l'icona (`sa` per Sant'Antonio, `sm` per Santa
-Maria). Le voci di `PRESENTAZIONE` ne indicano due: `icona` va nella favicon
+Maria e Santa Maria Sup, che si distinguono solo per il nome). Le voci di `PRESENTAZIONE` ne indicano due: `icona` va nella favicon
 della scheda, `iconaApp` nell'`apple-touch-icon`, ed è
 `applicaIdentitaSquadra()` a metterle. Le squadre senza voce usano quelle di
 Santa Maria, che sono anche quelle scritte in `index.html` e in

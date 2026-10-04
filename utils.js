@@ -29,6 +29,13 @@ const PRESENTAZIONE = {
         manifest: "manifest-santa-maria.json",
         icona: "immagini/favicon-sm.png",
         iconaApp: "immagini/maskable-sm.png"
+    },
+
+    "santa-maria-sup": {
+        nome: "Motra Santa Maria Sup",
+        manifest: "manifest-santa-maria-sup.json",
+        icona: "immagini/favicon-sm.png",
+        iconaApp: "immagini/maskable-sm.png"
     }
 };
 
@@ -51,7 +58,8 @@ const ICONA_APP_PREDEFINITA = "immagini/maskable-sm.png";
    hostname: nessuna altra modifica, nessuno step di build. */
 const SQUADRA_PER_HOST = {
     "motra-sant-antonio.netlify.app": "sant-antonio",
-    "motra-santa-maria.netlify.app": "santa-maria"
+    "motra-santa-maria.netlify.app": "santa-maria",
+    "motra-santa-maria-sup.netlify.app": "santa-maria-sup"
 };
 
 /* Traduce un hostname in id squadra.

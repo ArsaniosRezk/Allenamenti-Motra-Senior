@@ -27,7 +27,8 @@ const SHELL = [
     "./utils.js",
     "./manifest.json",
     "./manifest-sant-antonio.json",
-    "./manifest-santa-maria.json"
+    "./manifest-santa-maria.json",
+    "./manifest-santa-maria-sup.json"
 ];
 
 /* Va nella cache dei STATICI, non in quella della shell: il fetch handler

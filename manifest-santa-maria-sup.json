@@ -1,0 +1,27 @@
+{
+    "id": "/?team=santa-maria-sup",
+    "name": "Motra Santa Maria Sup",
+    "short_name": "S. Maria Sup",
+    "description": "Allenamenti, formazioni e pagelle della squadra.",
+    "lang": "it",
+    "start_url": "./index.html?team=santa-maria-sup#stats",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0f172a",
+    "theme_color": "#1f2937",
+    "icons": [
+        {
+            "src": "immagini/favicon-sm.png",
+            "sizes": "406x406",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "immagini/maskable-sm.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
