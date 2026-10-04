@@ -731,7 +731,12 @@ ul {
   color: white;
 
   border: none;
-  padding: 4px 8px;
+  /* Poco margine ai lati: i nomi che non entrano vengono rimpiccioliti da
+     adattaNome() in partita_spa.js. Interlinea fissa perche' il box non si
+     abbassi quando il testo diventa piu' piccolo. */
+  padding: 4px 3px;
+  line-height: 16px;
+  white-space: nowrap;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -845,7 +850,10 @@ h3 {
   min-width: 55px;
 
   flex: 1;
-  padding: 6px;
+  /* Come nel campo: i nomi lunghi li rimpicciolisce adattaNome() */
+  padding: 6px 3px;
+  line-height: 16px;
+  white-space: nowrap;
 
   font-weight: bold;
   font-size: 12px;
@@ -1168,7 +1176,9 @@ input:checked+.pc-slider-switch:before {
   background-color: rgba(0, 0, 0, 0.5);
   color: white;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 4px 3px;
+  line-height: 16px;
+  white-space: nowrap;
   font-weight: 700;
   font-size: 0.8rem;
   text-align: center;

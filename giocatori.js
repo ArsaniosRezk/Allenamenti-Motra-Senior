@@ -44,7 +44,10 @@ const NICKNAMES = {
   "Kirolos": "Kiro",
   "Kirullos": "Kiro",
   "Matteo": "Teo",
-  "Arsanios": "Arso"
+  "Arsanios": "Arso",
+  "Michel": "Misho",
+  "Andrew": "Andrew", // la regola automatica lo taglierebbe a "And"
+  "Marco": "Mar"
 };
 
 // 2. Funzione che calcola la "radice" del nome

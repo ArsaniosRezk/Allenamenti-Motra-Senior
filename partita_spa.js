@@ -246,8 +246,10 @@ function aggiornaOpzioniSelect() {
     });
 
     // Gira a ogni cambio di select: e' il punto giusto per riallineare
-    // l'etichetta del bottone flottante allo stato del campo.
+    // l'etichetta del bottone flottante allo stato del campo
+    // e il corpo dei nomi alla larghezza dei box.
     aggiornaStatoBottone();
+    adattaNomiSelect();
 }
 
 function collegaSelect() {
@@ -256,8 +258,70 @@ function collegaSelect() {
         if (!select) return;
         select.removeEventListener("change", aggiornaOpzioniSelect);
         select.addEventListener("change", aggiornaOpzioniSelect);
+        if (osservatoreBox) osservatoreBox.observe(select);
     });
 }
+
+/* =========================================================
+   NOMI DENTRO IL BOX
+   ---------------------------------------------------------
+   I box delle posizioni hanno larghezza fissa: tre per linea
+   devono stare nel campo. Un nome lungo ("Andrew", o "Kiro You"
+   quando serve il cognome per distinguere due Kiro) usciva
+   tagliato. Invece di allargare il box si rimpicciolisce il
+   testo quanto basta a farlo stare.
+   ========================================================= */
+const misuratore = document.createElement("canvas").getContext("2d");
+const MARGINE_TESTO = 2; // px di respiro: i browser non misurano tutti uguale
+
+function testoSelezionato(el) {
+    const opt = el.options[el.selectedIndex];
+    return opt ? opt.text : "-";
+}
+
+function adattaNome(el) {
+    el.style.fontSize = "";
+    // Non ancora a video (pagina nascosta): ci ripensa il ResizeObserver
+    if (!el.clientWidth) return;
+
+    const stile = getComputedStyle(el);
+    const spazio = el.clientWidth
+        - parseFloat(stile.paddingLeft)
+        - parseFloat(stile.paddingRight)
+        - MARGINE_TESTO;
+    misuratore.font = stile.fontWeight + " " + stile.fontSize + " " + stile.fontFamily;
+    const larghezza = misuratore.measureText(testoSelezionato(el)).width;
+
+    if (larghezza > spazio) {
+        const corpo = (parseFloat(stile.fontSize) * spazio) / larghezza;
+        el.style.fontSize = Math.floor(corpo * 10) / 10 + "px";
+    }
+}
+
+function adattaNomiSelect() {
+    getIdsCorrenti().forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) adattaNome(el);
+    });
+}
+
+/* Ricalcola quando un box cambia larghezza: la panchina si allarga con lo
+   schermo e le select di una pagina nascosta misurano 0 finche' non
+   compaiono. Si guarda solo la larghezza: cambiando il corpo del testo
+   cambia l'altezza, e reagire anche a quella darebbe un ciclo infinito. */
+const larghezzeViste = new WeakMap();
+const osservatoreBox = typeof ResizeObserver === "function"
+    ? new ResizeObserver((voci) => {
+        voci.forEach(({ target }) => {
+            if (larghezzeViste.get(target) === target.clientWidth) return;
+            larghezzeViste.set(target, target.clientWidth);
+            adattaNome(target);
+        });
+    })
+    : null;
+
+// Prima che Inter sia caricato si misurerebbe il font di riserva
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(adattaNomiSelect);
 
 /* Impronta della formazione a video, per capire se diverge da quella
    scritta sul database. Serve al bottone flottante: una volta comparse le
@@ -728,9 +792,10 @@ if (divCampo) {
                     divCampo.querySelectorAll("select").forEach((sel) => {
                         const div = document.createElement("div");
                         div.className = "screenshot-replacement";
-                        div.textContent = sel.options[sel.selectedIndex]
-                            ? sel.options[sel.selectedIndex].text
-                            : "-";
+                        div.textContent = testoSelezionato(sel);
+                        // Stessa larghezza e stesso corpo ridotto della select
+                        div.style.width = sel.offsetWidth + "px";
+                        div.style.fontSize = sel.style.fontSize;
                         sel.parentNode.insertBefore(div, sel);
                         sel.style.display = "none";
                         sostituzioni.push({ select: sel, div });
