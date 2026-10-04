@@ -47,7 +47,19 @@ const NICKNAMES = {
   "Arsanios": "Arso",
   "Michel": "Misho",
   "Andrew": "Andrew", // la regola automatica lo taglierebbe a "And"
-  "Marco": "Mar"
+  "Marco": "Marco",
+  "Ilario": "Ilario",
+  "Manuel": "Manu",
+  "Felobatir": "Filo",
+  "Felopater": "Filo",
+  "Felopatir": "Filo",
+  "Felobater": "Filo",
+  "Giovanni": "Giov",
+  "Abramo": "Abra",
+  "Marcellino": "Marce",
+  "Mikhaeil": "Mikha",
+  "Michele": "Mich",
+  "Simone": "Simo"
 };
 
 // 1b. Eccezioni per singola persona: valgono solo per quel nome e cognome
@@ -57,7 +69,8 @@ const NICKNAMES_PERSONA = {
   "Andreas Girgis": "Andreas",
   "Antony Ibrahim": "Tony",
   "Bishoy Sameh": "Bisho",
-  "Kirolos Wasef": "Gixi"
+  "Kirolos Wasef": "Gixi",
+  "Matteo Magdy": "Magdy"
 };
 
 // 2. Funzione che calcola la "radice" del nome
