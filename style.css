@@ -21,6 +21,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Badge "Powered by Netlify": non sta nel repository, lo inietta Netlify
+   nell'HTML servito (script /.netlify/scripts/hud) come iframe fisso in
+   basso a destra, sopra la barra di navigazione. Lo stile inline
+   dell'iframe non usa !important, quindi questa regola vince. Se Netlify
+   cambia l'id dell'iframe il badge ricompare: controlla l'id con
+   l'ispettore del browser e aggiornalo qui. */
+#nl-badge-frame {
+  display: none !important;
+}
+
 /* Bottom Navigation - Floating & Rounded */
 .bottom-nav {
   position: fixed;
