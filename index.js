@@ -286,7 +286,8 @@ function creaTabellaStatistiche(statsObj, tipo) {
     '" title="Condividi come immagine"><i class="fas fa-share-nodes"></i></button></div>' +
     '<table class="tabella-statistiche" id="' +
     idTabella +
-    '"><thead><tr><th>Giocatore</th><th>P</th><th>MV' +
+    // L'MV3 serve solo all'amministratore: non finisce nell'immagine condivisa.
+    '"><thead><tr><th>Giocatore</th><th>P</th><th class="hide-on-screenshot">MV' +
     VOTI_MV3 +
     "</th><th>MV</th></tr></thead><tbody>";
 
@@ -319,7 +320,7 @@ function creaTabellaStatistiche(statsObj, tipo) {
       titoloPresenze +
       ">" +
       presenzeDisplay +
-      '</td><td class="centrato ' +
+      '</td><td class="centrato hide-on-screenshot ' +
       classeMedia(d.mv3, true) +
       '">' +
       mv3Display +

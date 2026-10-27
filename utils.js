@@ -205,7 +205,7 @@ export function condividiImmagine(blob, nomeFile) {
     const file = new File([blob], nomeFile, { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         navigator
-            .share({ files: [file], title: "Condividi Immagine" })
+            .share({ files: [file] })
             .catch((err) => {
                 // L'utente che annulla la condivisione non e' un errore
                 if (err && err.name === "AbortError") return;
